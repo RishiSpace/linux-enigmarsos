@@ -1,0 +1,35 @@
+# makepkg / local build
+/src/
+/pkg/
+/out/
+/*.pkg.tar
+/*.pkg.tar.zst
+/*.pkg.tar.xz
+/*.log
+/*.log.gz
+/.cache/
+/.ccache/
+/srcdest/
+/build/
+
+# kernel leftovers
+/*.old
+/*.orig
+/*.rej
+*~
+*.swp
+
+# downloaded sources
+/linux-*.tar.xz
+/linux-*.tar.sign
+/linux-*.patch
+/linux-*.patch.zst
+/linux-*.patch.zst.sig
+/config.x86_64
+/enigmarsos.config
+/bore.patch
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/

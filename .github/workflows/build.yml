@@ -1,0 +1,314 @@
+# Build linux-enigmarsos in an Arch Linux container.
+#
+# Fortnightly schedule: 04:00 UTC on the 1st and 15th of each month.
+# Change the cron below to move the window.
+name: Build linux-enigmarsos
+
+on:
+  schedule:
+    - cron: '0 4 1,15 * *'
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Rebuild even if a release for this package version already exists'
+        type: boolean
+        default: true
+      publish:
+        description: 'Create a GitHub Release (false keeps workflow artifacts only)'
+        type: boolean
+        default: true
+      kernel_version:
+        description: 'Optional pin check (must match PKGBUILD pkgver, e.g. 7.1.8.arch1)'
+        type: string
+        required: false
+        default: ''
+      bore_version:
+        description: 'Optional pin check (must match patches/bore.meta, e.g. 6.8.0)'
+        type: string
+        required: false
+        default: ''
+  push:
+    branches: [main]
+    paths:
+      - PKGBUILD
+      - config/**
+      - patches/**
+      - scripts/**
+      - keys/**
+      - .github/workflows/build.yml
+  pull_request:
+    paths:
+      - PKGBUILD
+      - config/**
+      - patches/**
+      - scripts/**
+      - keys/**
+      - .github/workflows/build.yml
+
+# Only one kernel compile per ref. A new push cancels an in-flight run.
+concurrency:
+  group: linux-enigmarsos-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  # Official Arch image, pinned by digest. Update with:
+  #   docker pull archlinux:base-devel && docker inspect --format='{{index .RepoDigests 0}}' archlinux:base-devel
+  ARCH_IMAGE: archlinux:base-devel@sha256:ee205c220399524a683cf495d411691b921baed8ab47cdc6d732efa782fae484
+  ENABLE_CCACHE: '1'
+
+jobs:
+  decide:
+    name: Decide whether to compile
+    runs-on: ubuntu-latest
+    outputs:
+      compile: ${{ steps.decide.outputs.compile }}
+      publish: ${{ steps.decide.outputs.publish }}
+      trigger: ${{ steps.decide.outputs.trigger }}
+      pkgver: ${{ steps.meta.outputs.pkgver }}
+      pkgrel: ${{ steps.meta.outputs.pkgrel }}
+      package_version: ${{ steps.meta.outputs.package_version }}
+      bore_version: ${{ steps.meta.outputs.bore_version }}
+      bore_commit: ${{ steps.meta.outputs.bore_commit }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read packaging metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          pkgver=$(awk -F= '/^pkgver=/{print $2; exit}' PKGBUILD)
+          pkgrel=$(awk -F= '/^pkgrel=/{print $2; exit}' PKGBUILD)
+          bore_version=$(awk -F= '/^BORE_VERSION=/{print $2; exit}' patches/bore.meta)
+          bore_commit=$(awk -F= '/^BORE_COMMIT=/{print $2; exit}' patches/bore.meta)
+          echo "pkgver=$pkgver" >> "$GITHUB_OUTPUT"
+          echo "pkgrel=$pkgrel" >> "$GITHUB_OUTPUT"
+          echo "package_version=${pkgver}-${pkgrel}" >> "$GITHUB_OUTPUT"
+          echo "bore_version=$bore_version" >> "$GITHUB_OUTPUT"
+          echo "bore_commit=$bore_commit" >> "$GITHUB_OUTPUT"
+          echo "pkgver=$pkgver pkgrel=$pkgrel bore=$bore_version"
+
+      - name: Honour manual version pins
+        run: |
+          set -euo pipefail
+          req_k="${{ github.event.inputs.kernel_version }}"
+          req_b="${{ github.event.inputs.bore_version }}"
+          if [ -n "$req_k" ] && [ "$req_k" != "${{ steps.meta.outputs.pkgver }}" ]; then
+            echo "Requested kernel_version=$req_k but PKGBUILD pkgver=${{ steps.meta.outputs.pkgver }}"
+            echo "Update the repository with ./scripts/update-arch-kernel.sh first."
+            exit 1
+          fi
+          if [ -n "$req_b" ] && [ "$req_b" != "${{ steps.meta.outputs.bore_version }}" ]; then
+            echo "Requested bore_version=$req_b but pin is ${{ steps.meta.outputs.bore_version }}"
+            echo "Update the repository with ./scripts/update-bore.sh first."
+            exit 1
+          fi
+
+      - name: Decide compile / publish
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          event="${{ github.event_name }}"
+          force="${{ github.event.inputs.force_rebuild }}"
+          publish_in="${{ github.event.inputs.publish }}"
+          tag="v${{ steps.meta.outputs.package_version }}"
+
+          trigger="$event"
+          publish=false
+          compile=true
+
+          case "$event" in
+            workflow_dispatch)
+              trigger=manual
+              if [ "$publish_in" = "true" ]; then publish=true; fi
+              if [ "$force" = "" ]; then force=true; fi
+              ;;
+            schedule)
+              trigger=scheduled
+              publish=true
+              force="${force:-false}"
+              ;;
+            push)
+              trigger=push
+              publish=true
+              force=true
+              ;;
+            pull_request)
+              trigger=pull_request
+              publish=false
+              force=true
+              ;;
+          esac
+
+          if [ "$event" = "schedule" ] && [ "$force" != "true" ]; then
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "Scheduled run: release $tag already exists; skipping compile."
+              echo "Re-run with force_rebuild=true to rebuild."
+              compile=false
+              publish=false
+            fi
+          fi
+
+          echo "compile=$compile" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "trigger=$trigger" >> "$GITHUB_OUTPUT"
+          echo "compile=$compile publish=$publish trigger=$trigger tag=$tag"
+
+  build:
+    name: Compile kernel
+    needs: decide
+    if: needs.decide.outputs.compile == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    outputs:
+      release_tag: ${{ steps.tag.outputs.release_tag }}
+    steps:
+      - name: Free disk space
+        run: |
+          set -euo pipefail
+          df -h
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /opt/hostedtoolcache \
+            /usr/local/share/powershell \
+            /usr/share/swift \
+            /usr/local/share/chromium \
+            /usr/local/lib/node_modules \
+            /usr/share/miniconda || true
+          sudo apt-get clean || true
+          docker system prune -af || true
+          df -h
+
+      - name: Add swap
+        run: |
+          set -euo pipefail
+          sudo swapoff -a || true
+          sudo fallocate -l 8G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=8192
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
+
+      - uses: actions/checkout@v4
+
+      - name: Cache ccache
+        if: env.ENABLE_CCACHE == '1'
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ needs.decide.outputs.package_version }}-${{ needs.decide.outputs.bore_commit }}-${{ hashFiles('config/config.x86_64', 'config/enigmarsos.config', 'patches/bore.patch') }}
+          restore-keys: |
+            ccache-${{ needs.decide.outputs.package_version }}-
+            ccache-
+
+      - name: Pull pinned Arch image
+        run: |
+          set -euo pipefail
+          docker pull "${ARCH_IMAGE}"
+          docker image inspect "${ARCH_IMAGE}" --format '{{index .RepoDigests 0}}'
+
+      - name: Build packages in Arch container
+        env:
+          SOURCE_DATE_EPOCH: ${{ github.event.head_commit.timestamp && github.event.repository.pushed_at || '' }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          BUILD_TRIGGER: ${{ needs.decide.outputs.trigger }}
+          ARCH_IMAGE_DIGEST: ${{ env.ARCH_IMAGE }}
+        run: |
+          set -euo pipefail
+          mkdir -p out .ccache
+          # SOURCE_DATE_EPOCH from the commit currently checked out.
+          export SOURCE_DATE_EPOCH
+          SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)"
+          kvm_args=()
+          if [ -e /dev/kvm ]; then
+            kvm_args=(-v /dev/kvm:/dev/kvm --device /dev/kvm)
+          fi
+          docker run --rm \
+            --security-opt seccomp=unconfined \
+            -e SOURCE_DATE_EPOCH \
+            -e GITHUB_SHA \
+            -e GITHUB_REF \
+            -e GITHUB_EVENT_NAME \
+            -e GITHUB_RUN_ID \
+            -e GITHUB_RUN_NUMBER \
+            -e BUILD_TRIGGER \
+            -e ARCH_IMAGE_DIGEST \
+            -e ENABLE_CCACHE \
+            -e CCACHE_DIR=/cache/ccache \
+            -v "$PWD":/src:ro \
+            -v "$PWD/out":/out \
+            -v "$PWD/.ccache":/cache/ccache \
+            "${kvm_args[@]}" \
+            "${ARCH_IMAGE}" \
+            /src/scripts/ci-build.sh
+
+      - name: Confirm required artefacts
+        run: |
+          set -euo pipefail
+          test -f out/BUILD-METADATA.txt
+          test -f out/SHA256SUMS
+          test -f out/RELEASE-NOTES.md
+          ls -lh out/linux-enigmarsos-*.pkg.tar.zst
+          ls -lh out/linux-enigmarsos-headers-*.pkg.tar.zst
+          grep -q '^package_name=linux-enigmarsos$' out/BUILD-METADATA.txt
+          grep -q '^bore_version=' out/BUILD-METADATA.txt
+          cat out/BUILD-METADATA.txt
+
+      - name: Choose release tag
+        id: tag
+        run: |
+          set -euo pipefail
+          base="v${{ needs.decide.outputs.package_version }}"
+          tag="$base"
+          if git ls-remote --tags origin "refs/tags/${tag}" | grep -q .; then
+            tag="${base}+gha.${{ github.run_id }}"
+          fi
+          echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$tag"
+
+      - name: Upload workflow artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-enigmarsos-${{ needs.decide.outputs.package_version }}
+          path: |
+            out/linux-enigmarsos-*.pkg.tar.zst
+            out/linux-enigmarsos-headers-*.pkg.tar.zst
+            out/SHA256SUMS
+            out/B2SUMS
+            out/BUILD-METADATA.txt
+            out/RELEASE-NOTES.md
+            out/initramfs-linux-enigmarsos.img
+            out/namcap-*.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish GitHub Release
+        if: needs.decide.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.tag.outputs.release_tag }}"
+          title="linux-enigmarsos ${{ needs.decide.outputs.package_version }} (BORE ${{ needs.decide.outputs.bore_version }})"
+          gh release create "$tag" \
+            --title "$title" \
+            --notes-file out/RELEASE-NOTES.md \
+            --target "${{ github.sha }}" \
+            out/linux-enigmarsos-*.pkg.tar.zst \
+            out/linux-enigmarsos-headers-*.pkg.tar.zst \
+            out/SHA256SUMS \
+            out/B2SUMS \
+            out/BUILD-METADATA.txt \
+            out/initramfs-linux-enigmarsos.img
+          echo "Published $tag"
