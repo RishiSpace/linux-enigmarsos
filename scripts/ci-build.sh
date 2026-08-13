@@ -31,11 +31,13 @@ if [[ -d "$SRC/keys/pgp" ]]; then
     pacman-key --add "$key" || true
     gpg --import "$key" || true
   done
-  # Trust the three well-known upstream keys locally for makepkg.
+  # Trust the vendored kernel/Arch keys. Ownertrust needs the full
+  # fingerprint (fpr records), not the short key id on pub records.
   gpg --list-keys --with-colons \
-    | awk -F: '/^pub/{print $5}' \
+    | awk -F: '/^fpr:/{print $10}' \
     | while read -r fpr; do
-        echo "$fpr:6:" | gpg --import-ownertrust || true
+        [[ ${#fpr} -eq 40 ]] || continue
+        echo "${fpr}:6:" | gpg --import-ownertrust || true
       done
 fi
 

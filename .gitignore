@@ -22,12 +22,9 @@
 # downloaded sources
 /linux-*.tar.xz
 /linux-*.tar.sign
-/linux-*.patch
-/linux-*.patch.zst
-/linux-*.patch.zst.sig
-/config.x86_64
-/enigmarsos.config
-/bore.patch
+/linux-v*.patch
+/linux-v*.patch.zst
+/linux-v*.patch.zst.sig
 
 # editor / OS
 .DS_Store

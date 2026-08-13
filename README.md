@@ -227,6 +227,9 @@ Details: [MAINTAINING.md](MAINTAINING.md).
 
 ```
 PKGBUILD
+bore.patch -> patches/bore.patch          # makepkg local source
+enigmarsos.config -> config/enigmarsos.config
+config.x86_64 -> config/config.x86_64
 config/config.x86_64          # vendored Arch baseline
 config/enigmarsos.config      # tiny fragment
 config/CONFIG_CHANGES.md

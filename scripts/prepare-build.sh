@@ -32,6 +32,23 @@ require_repo_files
 verify_bore_checksum
 load_bore_meta
 
+# makepkg only looks next to PKGBUILD for local source files (basename).
+# Keep the real files in config/ and patches/; expose them here.
+ensure_makepkg_source() {
+  local dest="$REPO_ROOT/$1" src="$2"
+  if [[ -L "$dest" || -f "$dest" ]]; then
+    return 0
+  fi
+  ln -s "$src" "$dest"
+  info "linked $1 -> $src"
+}
+ensure_makepkg_source bore.patch patches/bore.patch
+ensure_makepkg_source enigmarsos.config config/enigmarsos.config
+ensure_makepkg_source config.x86_64 config/config.x86_64
+[[ -e "$REPO_ROOT/bore.patch" ]] || die "makepkg source missing: bore.patch"
+[[ -e "$REPO_ROOT/enigmarsos.config" ]] || die "makepkg source missing: enigmarsos.config"
+[[ -e "$REPO_ROOT/config.x86_64" ]] || die "makepkg source missing: config.x86_64"
+
 info "linux-enigmarsos packaging tree"
 printf '    package:           linux-enigmarsos %s\n' "$(package_version)"
 printf '    upstream Linux:    %s\n' "$(upstream_kernel)"

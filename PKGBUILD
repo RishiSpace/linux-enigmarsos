@@ -54,11 +54,11 @@ _bore_designed_for=7.1.5
 source=(
   https://cdn.kernel.org/pub/linux/kernel/v${pkgver%%.*}.x/${_srcname}.tar.{xz,sign}
   $_arch_linux_url/releases/download/$_srctag/linux-$_srctag.patch.zst{,.sig}
-  patches/bore.patch
-  config/enigmarsos.config
+  bore.patch
+  enigmarsos.config
 )
 source_x86_64=(
-  config/config.x86_64
+  config.x86_64
 )
 validpgpkeys=(
   ABAF11C65A2970B130ABE3C479BE3E4300411886  # Linus Torvalds

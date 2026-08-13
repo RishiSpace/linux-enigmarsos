@@ -28,6 +28,11 @@ makepkg -s
 `makepkg -s` installs the `makedepends` from `PKGBUILD` (compiler,
 pahole, rust, …).
 
+makepkg only looks next to `PKGBUILD` for local source files. The
+canonical copies stay in `patches/` and `config/`; `prepare-build.sh`
+exposes them as `bore.patch`, `enigmarsos.config`, and `config.x86_64`
+(committed as relative symlinks). Do not delete those three names.
+
 ## What `makepkg` actually does
 
 1. Downloads `linux-7.1.8.tar.xz` from kernel.org and the Arch patch
