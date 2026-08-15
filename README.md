@@ -11,9 +11,6 @@ official Arch Linux `linux` package
         + a tiny EnigmarsOS configuration fragment
 ```
 
-The expensive compile happens in GitHub Actions. A developer should not
-have to build the kernel on their own machine for routine releases.
-
 ## Why BORE
 
 EnigmarsOS ships KDE Plasma as its desktop. BORE (Burst-Oriented
