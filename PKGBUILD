@@ -9,7 +9,7 @@
 
 pkgbase=linux-enigmarsos
 pkgver=7.1.8.arch1
-pkgrel=1
+pkgrel=2
 pkgdesc='EnigmarsOS Linux'
 url='https://github.com/enigmarsos/linux-enigmarsos'
 arch=(x86_64)
@@ -102,8 +102,12 @@ prepare() {
   cd $_srcname
 
   echo "Setting version..."
+  # Arch's patch sets EXTRAVERSION=-arch1. Clear it so uname -r looks like
+  # other distros (7.1.8-2-enigmarsos), not 7.1.8-arch1-2-enigmarsos.
+  # Keep upstream version + pkgrel so /usr/lib/modules/* stays unique.
+  sed -i 's/^EXTRAVERSION =.*/EXTRAVERSION =/' Makefile
   echo "-$pkgrel" > localversion.10-pkgrel
-  echo "${pkgbase#linux}" > localversion.20-pkgname
+  echo "-enigmarsos" > localversion.20-pkgname
 
   local src
   for src in "${source[@]}"; do

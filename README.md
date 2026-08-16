@@ -30,8 +30,8 @@ Upstream project: <https://github.com/firelzrd/bore-scheduler>
 | --- | --- |
 | Upstream Linux | 7.1.8 |
 | Arch `linux` package | 7.1.8.arch1-3 |
-| EnigmarsOS package | `linux-enigmarsos 7.1.8.arch1-1` |
-| Kernel release string | `7.1.8-arch1-1-enigmarsos` |
+| EnigmarsOS package | `linux-enigmarsos 7.1.8.arch1-2` |
+| Kernel release string | `7.1.8-2-enigmarsos` |
 | BORE | 6.8.0 (`6a52aac2deab3faebcae97a34bb3eec4b3c2967e`) |
 | BORE written for | Linux 7.1.5 |
 | BORE channel | testing (only 7.1-series patch that applies to 7.1.8) |
@@ -49,7 +49,7 @@ Check live status:
 | Source | vanilla + Arch patch | the same, then BORE |
 | Config | Arch `config.x86_64` | Arch config + `CONFIG_SCHED_BORE=y` |
 | Package name | `linux` / `linux-headers` | `linux-enigmarsos` / `linux-enigmarsos-headers` |
-| `uname -r` | `7.1.8-arch1-3` | `7.1.8-arch1-1-enigmarsos` |
+| `uname -r` | `7.1.8-arch1-3` | `7.1.8-2-enigmarsos` |
 | Conflicts with `linux` | n/a | **no** — both can be installed |
 | Docs package | yes | not built (saves CI time) |
 
@@ -250,10 +250,13 @@ The Linux source tree is **not** stored here.
 
 ```
 package version   = <upstream>.<arch-tag>-<enigmarsos-pkgrel>
-                  = 7.1.8.arch1-1
-uname -r          = 7.1.8-arch1-1-enigmarsos
+                  = 7.1.8.arch1-2
+uname -r          = 7.1.8-2-enigmarsos
 BORE              = recorded in patches/bore.meta, not in pkgver
 ```
+
+`uname -r` is `<upstream>-<pkgrel>-enigmarsos` (no `arch1`). The numeric
+prefix stays so module directories do not collide across updates.
 
 - Bump `pkgver` when Arch's `pkgver` changes.
 - Bump `pkgrel` when BORE, the EnigmarsOS fragment, or packaging

@@ -75,13 +75,12 @@ upstream_kernel() {
 }
 
 expected_kernel_release() {
-  # EXTRAVERSION comes from the Arch patch (-arch1). localversion files
-  # add -$pkgrel and -enigmarsos.
-  local pkgver pkgrel extra
+  # EXTRAVERSION is cleared (no -arch1). localversion files add
+  # -$pkgrel and -enigmarsos → e.g. 7.1.8-2-enigmarsos
+  local pkgver pkgrel
   pkgver="$(pkgbuild_var pkgver)"
   pkgrel="$(pkgbuild_var pkgrel)"
-  extra="${pkgver##*.}"
-  printf '%s-%s-%s-enigmarsos\n' "${pkgver%.*}" "$extra" "$pkgrel"
+  printf '%s-%s-enigmarsos\n' "${pkgver%.*}" "$pkgrel"
 }
 
 find_built_packages() {
