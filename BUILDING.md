@@ -112,8 +112,18 @@ makepkg -s
 sha256sum linux-enigmarsos-*.pkg.tar.zst > SHA256SUMS
 ```
 
-Attach the packages and `SHA256SUMS` to a GitHub Release **manually**
-and record in the notes that the compile was local, plus `uname -m`,
+Then make the release mirror-ready and attach **all** of:
+
+```bash
+./scripts/publish-repo.sh /tmp/eos-kernel-repo .
+```
+
+- both `.pkg.tar.zst` packages
+- `linux-enigmarsos.db` and `linux-enigmarsos.db.tar.gz` (regular files)
+- `linux-enigmarsos.files` / `.files.tar.gz`
+- `SHA256SUMS`
+
+Record in the notes that the compile was local, plus `uname -m`,
 compiler versions, and `SOURCE_DATE_EPOCH`. Resume CI builds as soon
 as Actions is available; do not make local compiles the habit.
 

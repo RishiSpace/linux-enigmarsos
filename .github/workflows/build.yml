@@ -265,6 +265,15 @@ jobs:
           grep -q '^bore_version=' out/BUILD-METADATA.txt
           cat out/BUILD-METADATA.txt
 
+      - name: Build GitHub-mirror pacman repo
+        run: |
+          set -euo pipefail
+          ./scripts/publish-repo.sh out out
+          test -f out/linux-enigmarsos.db
+          test -f out/linux-enigmarsos.db.tar.gz
+          test ! -L out/linux-enigmarsos.db
+          ls -lh out/linux-enigmarsos.db* out/linux-enigmarsos.files* || true
+
       - name: Choose release tag
         id: tag
         run: |
@@ -284,6 +293,10 @@ jobs:
           path: |
             out/linux-enigmarsos-*.pkg.tar.zst
             out/linux-enigmarsos-headers-*.pkg.tar.zst
+            out/linux-enigmarsos.db
+            out/linux-enigmarsos.db.tar.gz
+            out/linux-enigmarsos.files
+            out/linux-enigmarsos.files.tar.gz
             out/SHA256SUMS
             out/B2SUMS
             out/BUILD-METADATA.txt
@@ -307,8 +320,13 @@ jobs:
             --target "${{ github.sha }}" \
             out/linux-enigmarsos-*.pkg.tar.zst \
             out/linux-enigmarsos-headers-*.pkg.tar.zst \
+            out/linux-enigmarsos.db \
+            out/linux-enigmarsos.db.tar.gz \
+            out/linux-enigmarsos.files \
+            out/linux-enigmarsos.files.tar.gz \
             out/SHA256SUMS \
             out/B2SUMS \
             out/BUILD-METADATA.txt \
             out/initramfs-linux-enigmarsos.img
           echo "Published $tag"
+          echo "Mirror: https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download"

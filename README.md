@@ -154,6 +154,8 @@ Release assets:
 
 - `linux-enigmarsos-*.pkg.tar.zst`
 - `linux-enigmarsos-headers-*.pkg.tar.zst`
+- `linux-enigmarsos.db` and `linux-enigmarsos.db.tar.gz` (pacman mirror)
+- `linux-enigmarsos.files` and `linux-enigmarsos.files.tar.gz`
 - `SHA256SUMS`, `B2SUMS`
 - `BUILD-METADATA.txt`
 - `initramfs-linux-enigmarsos.img` (CI-generated, for inspection)
@@ -166,15 +168,18 @@ Workflow artefacts are also kept for 14 days for CI inspection.
 
 ## Installing the packages
 
-From a release:
+GitHub Releases are a pacman repo ($0 mirror). See [`repo/README.md`](repo/README.md).
 
 ```bash
-sudo pacman -U linux-enigmarsos-7.1.8.arch1-1-x86_64.pkg.tar.zst \
-              linux-enigmarsos-headers-7.1.8.arch1-1-x86_64.pkg.tar.zst
+# /etc/pacman.conf — or Include repo/enigmarsos.example.conf
+# [linux-enigmarsos]
+# SigLevel = Optional TrustAll
+# Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+
+sudo pacman -Sy linux-enigmarsos linux-enigmarsos-headers
 ```
 
-Or, once an EnigmarsOS pacman repository exists, see
-[`repo/README.md`](repo/README.md).
+Or install a specific release's assets with `pacman -U`.
 
 `mkinitcpio` / `kernel-install` discover the kernel through
 `/usr/lib/modules/<release>/pkgbase` (`linux-enigmarsos`). DKMS modules

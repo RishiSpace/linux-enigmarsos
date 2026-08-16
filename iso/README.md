@@ -26,27 +26,29 @@ installed system can boot EnigmarsOS (BORE) or the stock Arch kernel.
 
 ## Repository
 
-Point the ISO's `pacman.conf` at the EnigmarsOS kernel repo (or at a
-build-time file:// repo populated by `scripts/publish-repo.sh`) **before**
-`mkarchiso` resolves packages.
+GitHub Releases **are** the pacman repo. Point the ISO `pacman.conf` at
+Latest **before** `mkarchiso` / `pacstrap`:
 
 ```
 [linux-enigmarsos]
 SigLevel = Optional TrustAll
-Server = https://repo.enigmarsos.example/$repo/$arch
+Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
 ```
 
-Until that host exists, `mkarchiso` can be given a local repo created
-from a GitHub Release:
+For an offline / pinned ISO build, snapshot Latest into a `file://` repo:
 
 ```bash
 mkdir -p /tmp/eos-kernel-repo
 cd /tmp/eos-kernel-repo
-# download the two .pkg.tar.zst files from the latest GitHub Release
-repo-add linux-enigmarsos.db.tar.gz linux-enigmarsos-*.pkg.tar.zst
+base=https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+# packages + db from the Latest release, or:
+#   ./scripts/publish-repo.sh /tmp/eos-kernel-repo /path/to/packages
+curl -fL -O "$base/linux-enigmarsos.db"
+# mkarchiso also needs the .pkg.tar.zst files from the same release
 ```
 
-and `Server = file:///tmp/eos-kernel-repo`.
+`Server = file:///tmp/eos-kernel-repo` after downloading the packages
+and db together.
 
 ## Bootloader
 

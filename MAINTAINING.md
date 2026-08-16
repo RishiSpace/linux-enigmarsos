@@ -16,10 +16,10 @@ review the git diff
 commit and either wait for the 1st/15th or Run workflow
         ↓
 CI compiles, tests, publishes a GitHub Release
+        (packages + linux-enigmarsos.db — pacman mirror)
         ↓
-(optional) ./scripts/publish-repo.sh /path/to/repo
-        ↓
-ISO picks the packages up as ordinary pacman deps
+ISO / installed systems: pacman -Sy linux-enigmarsos
+        Server = …/releases/latest/download
 ```
 
 ## Weekly (or whenever you open the laptop)

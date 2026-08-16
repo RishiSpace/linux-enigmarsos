@@ -190,7 +190,19 @@ Custom EnigmarsOS kernel: current Arch Linux kernel + EnigmarsOS configuration +
 - \`mkinitcpio\` produced an initramfs
 - QEMU TCG smoke test booted the kernel and read \`/proc/sys/kernel/sched_bore=1\`
 
-## Install
+## Install (pacman repo — GitHub Releases mirror)
+
+\`\`\`ini
+[linux-enigmarsos]
+SigLevel = Optional TrustAll
+Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+\`\`\`
+
+\`\`\`bash
+sudo pacman -Sy linux-enigmarsos linux-enigmarsos-headers
+\`\`\`
+
+Or install the release assets directly:
 
 \`\`\`bash
 sudo pacman -U linux-enigmarsos-$(package_version)-x86_64.pkg.tar.zst \\
