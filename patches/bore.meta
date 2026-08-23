@@ -12,9 +12,3 @@ BORE_UPSTREAM_PATH=patches/testing/0001-linux7.1.5-bore-6.8.0.patch
 BORE_LICENSE=GPL-2.0-only
 BORE_SHA256=ec1edcf30028d605edafe3a7fc634870f41e5cac7a66ecdd1198e2ac4ef6a634
 BORE_B2SUM=2ab3e6d9079e4889bafdc7dd209d298b35022aa56098696b7c5d5f39adacc8e122b7d4c73666193df0dd5a721f8ef5d8c6e8c132ad63c01439753849d32e9506
-
-# Compatibility note recorded when this pin was chosen:
-# The patch is labelled for vanilla Linux 7.1.5. It applies with line
-# offsets (no fuzz) to vanilla 7.1.8 plus the Arch v7.1.8-arch1 patch.
-# The older stable patch 0001-linux7.1-rc1-bore-6.6.3.patch does NOT
-# apply to 7.1.8 (failed hunk in kernel/sched/fair.c).
