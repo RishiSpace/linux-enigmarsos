@@ -2,13 +2,13 @@
 # Contributor: Jan Alexander Steffens (heftig) <heftig@archlinux.org>
 #
 # Derived from the official Arch Linux `linux` PKGBUILD (0BSD).
-# Tracked Arch package: linux 7.1.10.arch1-1
+# Tracked Arch package: linux 7.2.2.arch1-1
 #
 # This is not a kernel fork. The tree is:
 #   vanilla Linux 7.1.8 + Arch patch + BORE 6.8.0 + EnigmarsOS config fragment
 
 pkgbase=linux-enigmarsos
-pkgver=7.1.10.arch1
+pkgver=7.2.2.arch1
 pkgrel=2
 pkgdesc='EnigmarsOS Linux'
 url='https://github.com/enigmarsos/linux-enigmarsos'
@@ -48,8 +48,8 @@ _arch_linux_url='https://github.com/archlinux/linux'
 
 # BORE pin. Keep in sync with patches/bore.meta.
 _bore_version=6.8.0
-_bore_commit=6a52aac2deab3faebcae97a34bb3eec4b3c2967e
-_bore_designed_for=7.1.5
+_bore_commit=35714de2e7e783f878edd0e7f5401e3220e78768
+_bore_designed_for=7.2-rc1
 
 source=(
   https://cdn.kernel.org/pub/linux/kernel/v${pkgver%%.*}.x/${_srcname}.tar.{xz,sign}
@@ -65,20 +65,20 @@ validpgpkeys=(
   647F28654894E3BD457199BE38DBBDC86092693E  # Greg Kroah-Hartman
   83BC8889351B5DEBBB68416EB8AC08600F108CDF  # Jan Alexander Steffens (heftig)
 )
-b2sums=('fd433e456a207ba881c085d9743dcee706cadc9eed577bb5893419569cc10e494607116fd1bede2bda5c35d9ef76d32e3160473d5d9e7ea378de248a296914dd'
+b2sums=('7d3904933ddca054bc085d34c2941d0ed74280c3691716b55369197a0f40dad8d116abaca22fcea71476bd52e9396d80d066d3e859bc945dfdb9e305baff59ab'
         'SKIP'
-        '93e99c1e404d59ddf801d416facfb0f471b7284c55e362d481cb0df9d360bf10b214b4b609c683b2f0832efb6140c8c3849a37b36a8904ce452e96687bd75c6f'
+        '3953137079a786967230b6f5f2b4ccaa7cb5a2b09ef533ea5b9b8ca83fa4d8795a2fd8430bb5fc1dd280396571685e3fa06fe6aaa4fc64ad9484008457218713'
         'SKIP'
-        '2ab3e6d9079e4889bafdc7dd209d298b35022aa56098696b7c5d5f39adacc8e122b7d4c73666193df0dd5a721f8ef5d8c6e8c132ad63c01439753849d32e9506'
+        'ab0447865d6fc4885f092d53701b56a2e3ec0643fb9fb687b62f581101d01d42e966ffbe0bf5a3b87969e4008c1753b7d52de7308559c79e951ff604fbfa9648'
         '601173bc543df5605e0f6babecc5182bd5747de25d126c4b38907b51e7b572d9320c2dd09766e1b7da1bb7f2c76ee1a166aea33cea44929c35ee2ba8a02b3aab')
-b2sums_x86_64=('e5a79d3120d8eaa784ba65892f92da11fc21f33e9bc33aaa256f3a9ba58d9fd2c6781e475f0210368191ddafb1fcaab2aa68764d6503c3b7bed05906c4b8d105')
+b2sums_x86_64=('829f887f9867135dc8977d536ef31f9b1c42418f05ef5552443955e23cf0d60dad2b5d9ac138670f976e4ab71e982fbf25dbb3be654fcfcd54ca22ef0fb72ed3')
 
 # https://www.kernel.org/pub/linux/kernel/v7.x/sha256sums.asc
-sha256sums=('67d2f4697a02f3bec98e744b1bdc307e920c24bb4e88b5ee97dc9a34e9aa9999'
+sha256sums=('7d0e7ce14f98c43efe880cffbf354a59be45928fdf7170d7333c374ae91c0d83'
             'SKIP'
-            'fbd5815ca26d02fe65bdeacad71b22eaa9cb0ddd02b13b6637b94b5d02fd325f'
+            'e8f3e197bd64985922150873c4af09301088a7437217f519243ce74ba6a691f4'
             'SKIP'
-        'ec1edcf30028d605edafe3a7fc634870f41e5cac7a66ecdd1198e2ac4ef6a634'
+        '432c4e2f750d09b255024d547bdf5b014862ab297083ea04c62869db90d920ee'
         'b6d8fccf612825da9eff2532bfb33761922f121eaab2075643c20a58ce5a1318')
 
 export KBUILD_BUILD_HOST=enigmarsos
