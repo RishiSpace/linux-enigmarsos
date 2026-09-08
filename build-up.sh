@@ -7,8 +7,13 @@ export MAKEFLAGS="-j2"
 export PKGDEST="$PWD/out"
 mkdir -p "$PKGDEST"
 
+command -v repo-add >/dev/null 2>&1 || {
+  echo "==> ERROR: repo-add not found (install pacman); needed for linux-enigmarsos.db" >&2
+  exit 1
+}
+
 # free RAM before starting: close browsers / other heavy apps
-gpg --import keys/pgp/*.asc
+gpg --import keys/pgp/*.asc || true
 
 ./scripts/status.sh
 ./scripts/update-arch-kernel.sh
@@ -47,6 +52,20 @@ rm -f "$repo_dir"/linux-enigmarsos-*.pkg.tar.zst \
 cp -a "${built[@]}" "$stage/"
 ./scripts/publish-repo.sh "$repo_dir" "$stage"
 
+for f in linux-enigmarsos.db linux-enigmarsos.db.tar.gz \
+         linux-enigmarsos.files linux-enigmarsos.files.tar.gz; do
+  p="$repo_dir/$f"
+  if [[ ! -f "$p" ]]; then
+    echo "==> ERROR: missing $p" >&2
+    exit 1
+  fi
+  if [[ -L "$p" ]]; then
+    echo "==> ERROR: $p is a symlink; GitHub Releases cannot serve it" >&2
+    exit 1
+  fi
+done
+
 echo
-ls -lh "$repo_dir"/linux-enigmarsos.db "$repo_dir"/linux-enigmarsos.db.tar.gz
+ls -lh "$repo_dir"/linux-enigmarsos.db "$repo_dir"/linux-enigmarsos.db.tar.gz \
+       "$repo_dir"/linux-enigmarsos.files "$repo_dir"/linux-enigmarsos.files.tar.gz
 echo "Upload with: ./scripts/upload-release-mirror.sh"
