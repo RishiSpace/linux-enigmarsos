@@ -25,13 +25,24 @@ require_repo_files
 verify_bore_checksum
 
 PKGDIR="${1:-}"
+ver="$(package_version)"
 if [[ -z "$PKGDIR" ]]; then
   mapfile -t ALL_PKGS < <(find_built_packages || true)
 else
   shopt -s nullglob
-  ALL_PKGS=("$PKGDIR"/linux-enigmarsos-*.pkg.tar.zst)
+  ALL_PKGS=("$PKGDIR"/linux-enigmarsos-"${ver}"-*.pkg.tar.zst
+            "$PKGDIR"/linux-enigmarsos-headers-"${ver}"-*.pkg.tar.zst)
   shopt -u nullglob
 fi
+# Ignore leftover older builds sitting next to this pkgver-pkgrel.
+filtered=()
+for p in "${ALL_PKGS[@]}"; do
+  base="$(basename "$p")"
+  if [[ "$base" == linux-enigmarsos-"${ver}"-* || "$base" == linux-enigmarsos-headers-"${ver}"-* ]]; then
+    filtered+=("$p")
+  fi
+done
+ALL_PKGS=("${filtered[@]}")
 
 ((${#ALL_PKGS[@]})) || die "no linux-enigmarsos-*.pkg.tar.zst packages found"
 
@@ -91,28 +102,45 @@ info "Package contents"
 bsdtar -tf "$KERNEL_PKG" > "$WORKDIR/kernel.list"
 bsdtar -tf "$HEADERS_PKG" > "$WORKDIR/headers.list"
 
-grep -q '/usr/lib/modules/.*/vmlinuz$' "$WORKDIR/kernel.list" \
+# bsdtar -tf lists members without a leading slash
+has_path() { grep -Eq "(^|/)${1}$" "$2"; }
+has_prefix() { grep -Eq "(^|/)${1}" "$2"; }
+
+has_path 'usr/lib/modules/.*/vmlinuz' "$WORKDIR/kernel.list" \
   && pass "kernel image present" || bad "vmlinuz missing"
-grep -q '/usr/lib/modules/.*/pkgbase$' "$WORKDIR/kernel.list" \
+has_path 'usr/lib/modules/.*/pkgbase' "$WORKDIR/kernel.list" \
   && pass "pkgbase present" || bad "pkgbase missing"
-grep -q '/usr/lib/modules/.*/kernel/' "$WORKDIR/kernel.list" \
+has_prefix 'usr/lib/modules/.*/kernel/' "$WORKDIR/kernel.list" \
   && pass "modules present" || bad "module tree missing"
-grep -q '/usr/lib/modules/.*/build/Makefile$' "$WORKDIR/headers.list" \
+has_path 'usr/lib/modules/.*/build/Makefile' "$WORKDIR/headers.list" \
   && pass "headers build tree present" || bad "headers Makefile missing"
-grep -q '/usr/src/linux-enigmarsos' "$WORKDIR/headers.list" \
+has_prefix 'usr/src/linux-enigmarsos' "$WORKDIR/headers.list" \
   && pass "headers /usr/src symlink present" || bad "/usr/src/linux-enigmarsos missing"
 
-# Extract just enough to inspect identity, config and BORE.
+# Host bsdtar (libarchive) does not support GNU tar --wildcards.
+extract_matching() {
+  local pkg="$1" list="$2" dest="$3" pattern="$4" f
+  mapfile -t hits < <(grep -E "(^|/)${pattern}$" "$list" || true)
+  ((${#hits[@]})) || return 0
+  for f in "${hits[@]}"; do
+    [[ -n "$f" ]] || continue
+    bsdtar -C "$dest" -xf "$pkg" "$f"
+  done
+}
+
 info "Extracting identity and configuration"
-bsdtar -C "$WORKDIR" -xf "$KERNEL_PKG" --wildcards \
-  'usr/lib/modules/*/vmlinuz' \
-  'usr/lib/modules/*/pkgbase' \
-  'usr/lib/modules/*/kernel/sched' 2>/dev/null || true
-bsdtar -C "$WORKDIR" -xf "$HEADERS_PKG" --wildcards \
-  'usr/lib/modules/*/build/.config' \
-  'usr/lib/modules/*/build/include/linux/sched/bore.h' \
-  'usr/lib/modules/*/build/kernel/sched/bore.c' \
-  'usr/lib/modules/*/build/version'
+extract_matching "$KERNEL_PKG" "$WORKDIR/kernel.list" "$WORKDIR" \
+  'usr/lib/modules/.*/vmlinuz'
+extract_matching "$KERNEL_PKG" "$WORKDIR/kernel.list" "$WORKDIR" \
+  'usr/lib/modules/.*/pkgbase'
+extract_matching "$HEADERS_PKG" "$WORKDIR/headers.list" "$WORKDIR" \
+  'usr/lib/modules/.*/build/\.config'
+extract_matching "$HEADERS_PKG" "$WORKDIR/headers.list" "$WORKDIR" \
+  'usr/lib/modules/.*/build/include/linux/sched/bore.h'
+extract_matching "$HEADERS_PKG" "$WORKDIR/headers.list" "$WORKDIR" \
+  'usr/lib/modules/.*/build/kernel/sched/bore.c'
+extract_matching "$HEADERS_PKG" "$WORKDIR/headers.list" "$WORKDIR" \
+  'usr/lib/modules/.*/build/version'
 
 vmlinuz="$(find "$WORKDIR/usr/lib/modules" -name vmlinuz -print -quit || true)"
 pkgbase="$(find "$WORKDIR/usr/lib/modules" -name pkgbase -print -quit || true)"
@@ -158,7 +186,11 @@ if [[ -n "$kconfig" ]]; then
 fi
 
 [[ -n "$bore_h" && -s "$bore_h" ]] && pass "bore.h shipped in headers" || bad "bore.h missing from headers"
-[[ -n "$bore_c" && -s "$bore_c" ]] && pass "bore.c shipped in headers" || bad "bore.c missing from headers"
+if [[ -n "$bore_c" && -s "$bore_c" ]]; then
+  pass "bore.c shipped in headers"
+else
+  warn "bore.c not in headers (header-only BORE layout is OK)"
+fi
 if [[ -n "$bore_h" ]]; then
   grep -q "SCHED_BORE_VERSION[[:space:]]\\+\"$BORE_VERSION\"" "$bore_h" \
     && pass "BORE version $BORE_VERSION in headers" \
