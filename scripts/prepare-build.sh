@@ -63,6 +63,8 @@ printf '    BORE SHA-256:      %s\n' "$BORE_SHA256"
 [[ -s "$ENIGMARS_CONFIG" ]] || die "EnigmarsOS config fragment is empty"
 grep -q '^CONFIG_SCHED_BORE=y' "$ENIGMARS_CONFIG" \
   || die "config/enigmarsos.config must set CONFIG_SCHED_BORE=y"
+march="$(pkgbuild_var _x86_64_march 2>/dev/null || true)"
+printf '    ISA floor:         %s\n' "${march:-x86-64 (unset)}"
 
 need_cmd makepkg
 need_cmd patch

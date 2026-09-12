@@ -35,6 +35,28 @@ The BORE patch defaults this option to `y`. EnigmarsOS still sets it
 explicitly and fails the build if the option is missing or not `y`
 after `olddefconfig`.
 
+### `CONFIG_X86_NATIVE_CPU`
+
+| | |
+| --- | --- |
+| Old value | unset (`# CONFIG_X86_NATIVE_CPU is not set`) |
+| New value | unset (forced) |
+| Reason | A native build would use `-march=native` and only run on the builder. EnigmarsOS needs one ISO kernel for all supported PCs. |
+
+### Compiler ISA floor: `x86-64-v3`
+
+Vanilla Linux 7.2 has no `CONFIG_X86_64_VERSION`. `arch/x86/Makefile` hardcodes `-march=x86-64 -mtune=generic`. EnigmarsOS rewrites that line (and the matching rustc `-Ctarget-cpu`) to **`x86-64-v3`** in `PKGBUILD` `prepare()`.
+
+| | |
+| --- | --- |
+| Old value | `-march=x86-64` (every 64-bit PC) |
+| New value | `-march=x86-64-v3` |
+| Reason | EnigmarsOS targets modern desktops. v3 is AVX2: Intel Haswell (2013)+ and AMD Excavator (2015)+ / all Zen. Kernel SIMD stays off (`-mno-avx` is still applied first); v3 mainly enables BMI2, LZCNT, MOVBE and better scheduling. |
+
+This kernel will not boot on Sandy/Ivy Bridge, AVX-less Pentium/Celeron, or VMs that hide AVX2 (`qemu64` / `kvm64`). Keep Arch `linux` as the Limine fallback. Point VMs at host CPU passthrough.
+
+Do **not** default to v4 or znver4: v4 needs AVX-512 (missing on many Intel 12th–14th gen chips); znver4 is AMD-only.
+
 ### `CONFIG_MIN_BASE_SLICE_NS`
 
 | | |
@@ -55,7 +77,8 @@ not override them.
 | `CONFIG_PREEMPT` / `CONFIG_PREEMPT_DYNAMIC` | enabled | Arch already uses voluntary/full dynamic preempt. |
 | `CONFIG_SCHED_CLASS_EXT` | `y` | Keep sched-ext userspace schedulers available. |
 | `CONFIG_IKCONFIG` / `CONFIG_IKCONFIG_PROC` | `y` | Required for BORE verification via `/proc/config.gz`. |
-| Compiler `-O3`, LTO, native march | off / generic | Not benchmarked for EnigmarsOS; changing them would also break the generic ISO kernel. |
+| Compiler `-O3`, LTO | off | Not benchmarked for EnigmarsOS. |
+| `-march=native` | off | Would bind the ISO kernel to one CPU. ISA floor is v3 instead. |
 | `CONFIG_RUST` | `y` | Matches Arch; required to keep their config valid. |
 
 ## Adding a new change

@@ -9,7 +9,7 @@
 
 pkgbase=linux-enigmarsos
 pkgver=7.2.4.arch1
-pkgrel=2
+pkgrel=3
 pkgdesc='EnigmarsOS Linux'
 url='https://github.com/enigmarsos/linux-enigmarsos'
 arch=(x86_64)
@@ -46,6 +46,11 @@ _srcname=linux-${pkgver%.*}
 _srctag=v${pkgver%.*}-${pkgver##*.}
 _arch_linux_url='https://github.com/archlinux/linux'
 
+# Compiler ISA floor. Vanilla 7.2 has no CONFIG_X86_64_VERSION; the
+# kernel Makefile hardcodes -march=x86-64. We rewrite that to v3.
+# Minimum CPU: AVX2 (Intel Haswell 2013+, AMD Excavator 2015+ / all Zen).
+_x86_64_march=x86-64-v3
+
 # BORE pin. Keep in sync with patches/bore.meta.
 _bore_version=6.8.0
 _bore_commit=8fdcbdd4446300f045a509ce23f72269f5ade52b
@@ -70,7 +75,7 @@ b2sums=('1dc0bee4d040846ac31672400339c179daf68919b2d923261205febbb4ff654d1ac21a4
         '911acab50d12d1b81980ae5b639d222e6c2b4471c08b2eb0bf6221036ca435b18a836aac8855834acc56a0a6b01eb60087775df4f83f33d060410327a4786f30'
         'SKIP'
         'ab0447865d6fc4885f092d53701b56a2e3ec0643fb9fb687b62f581101d01d42e966ffbe0bf5a3b87969e4008c1753b7d52de7308559c79e951ff604fbfa9648'
-        '601173bc543df5605e0f6babecc5182bd5747de25d126c4b38907b51e7b572d9320c2dd09766e1b7da1bb7f2c76ee1a166aea33cea44929c35ee2ba8a02b3aab')
+        '1ce4482c88ccf6f0f8e59dd550beb6aa41b8e1d908548ed6c5c02d9b2842319c90ba13185a70b0e57dea09fa9137b67e772f7a3660cc829e8c75f4d5ebca2372')
 b2sums_x86_64=('60a991bded2a41a9b3880445f5cefe3f19e593b2204a007a423d8a5f2858bbc7d3babab02ffebd9ff8fd37f3a1a32b3ca2512cbe768f5cb154deffacfbfee28a')
 
 # https://www.kernel.org/pub/linux/kernel/v7.x/sha256sums.asc
@@ -79,7 +84,7 @@ sha256sums=('01710ee01737dac492f1bae52becd057e08d20d11589089aa06accff415c28dd'
             '07b0526c8d8b9bae9dacf1a90aa77a92de8fca505ea35d3b523f28556361fc16'
             'SKIP'
         '432c4e2f750d09b255024d547bdf5b014862ab297083ea04c62869db90d920ee'
-        'b6d8fccf612825da9eff2532bfb33761922f121eaab2075643c20a58ce5a1318')
+        '777a7495ff3ed47dbf5f2ae044d50ac5d298c2c8a7e12ef4f3455d5656d2c93d')
 
 export KBUILD_BUILD_HOST=enigmarsos
 export KBUILD_BUILD_USER=$pkgbase
@@ -126,12 +131,25 @@ prepare() {
   grep -q "SCHED_BORE_VERSION[[:space:]]\\+\"$_bore_version\"" include/linux/sched/bore.h \
     || _die "BORE version string $_bore_version not found in include/linux/sched/bore.h"
 
+  echo "Setting x86-64 ISA level to $_x86_64_march..."
+  # Same position as vanilla -march=x86-64, after -mno-avx/-mno-sse, so
+  # the kernel still must not emit SIMD. v3 unlocks BMI2/LZCNT/MOVBE.
+  grep -q -- '-march=x86-64 -mtune=generic' arch/x86/Makefile \
+    || _die "arch/x86/Makefile no longer contains the vanilla -march=x86-64 line"
+  sed -i "s/-march=x86-64 -mtune=generic/-march=${_x86_64_march} -mtune=generic/" \
+    arch/x86/Makefile
+  sed -i "s/-Ctarget-cpu=x86-64 -Ztune-cpu=generic/-Ctarget-cpu=${_x86_64_march} -Ztune-cpu=generic/" \
+    arch/x86/Makefile
+  grep -q -- "-march=${_x86_64_march}" arch/x86/Makefile \
+    || _die "failed to set -march=${_x86_64_march} in arch/x86/Makefile"
+
   echo "Setting config..."
   cp ../config.$CARCH .config
 
   echo "Applying EnigmarsOS configuration fragment..."
   scripts/config --file .config --enable SCHED_BORE
   scripts/config --file .config --set-val MIN_BASE_SLICE_NS 2000000
+  scripts/config --file .config --disable X86_NATIVE_CPU
 
   make olddefconfig
   diff -u ../config.$CARCH .config || :
@@ -141,6 +159,8 @@ prepare() {
   _require_config MIN_BASE_SLICE_NS 2000000
   _require_config IKCONFIG y
   _require_config IKCONFIG_PROC y
+  # scripts/config -s prints 'n' for unset bools that have a default of n
+  _require_config X86_NATIVE_CPU n
 
   make -s kernelrelease > version
   local krel

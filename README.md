@@ -9,6 +9,7 @@ This is **not** a kernel fork. The package is:
 official Arch Linux `linux` package
         + BORE scheduler patch
         + a tiny EnigmarsOS configuration fragment
+        + x86-64-v3 compiler ISA floor (AVX2)
 ```
 
 ## Why BORE
@@ -48,6 +49,7 @@ Check live status:
 | --- | --- | --- |
 | Source | vanilla + Arch patch | the same, then BORE |
 | Config | Arch `config.x86_64` | Arch config + `CONFIG_SCHED_BORE=y` |
+| CPU ISA | generic `x86-64` | **`x86-64-v3`** (AVX2: Haswell / Zen 1+) |
 | Package name | `linux` / `linux-headers` | `linux-enigmarsos` / `linux-enigmarsos-headers` |
 | `uname -r` | `7.1.8-arch1-3` | `7.1.8-2-enigmarsos` |
 | Conflicts with `linux` | n/a | **no** — both can be installed |
