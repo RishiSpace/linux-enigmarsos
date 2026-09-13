@@ -45,12 +45,16 @@ ensure_makepkg_source() {
 ensure_makepkg_source bore.patch patches/bore.patch
 ensure_makepkg_source enigmarsos.config config/enigmarsos.config
 ensure_makepkg_source config.x86_64 config/config.x86_64
+for p in "$REPO_ROOT"/patches/000*.patch; do
+  [[ -f "$p" ]] || continue
+  ensure_makepkg_source "$(basename "$p")" "patches/$(basename "$p")"
+done
 [[ -e "$REPO_ROOT/bore.patch" ]] || die "makepkg source missing: bore.patch"
 [[ -e "$REPO_ROOT/enigmarsos.config" ]] || die "makepkg source missing: enigmarsos.config"
 [[ -e "$REPO_ROOT/config.x86_64" ]] || die "makepkg source missing: config.x86_64"
 
-info "linux-enigmarsos packaging tree"
-printf '    package:           linux-enigmarsos %s\n' "$(package_version)"
+info "linux-enigmarsos-lts packaging tree"
+printf '    package:           linux-enigmarsos-lts %s\n' "$(package_version)"
 printf '    upstream Linux:    %s\n' "$(upstream_kernel)"
 printf '    tracked Arch rel:  %s\n' "$(pkgbuild_var _arch_pkgrel)"
 printf '    expected release:  %s\n' "$(expected_kernel_release)"

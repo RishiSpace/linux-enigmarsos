@@ -3,11 +3,11 @@
 This project is meant to be run by one developer. The loop is small.
 
 ```
-Arch publishes a new linux
+Arch publishes a new linux-lts
         ↓
 ./scripts/status.sh                  # notice it
         ↓
-./scripts/update-arch-kernel.sh      # pkgver, checksums, config
+./scripts/update-arch-kernel.sh      # pkgver, checksums, config, 000*.patch
         ↓
 ./scripts/update-bore.sh             # matching BORE patch, or FAIL
         ↓

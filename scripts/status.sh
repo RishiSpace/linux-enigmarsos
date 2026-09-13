@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Compare this repo with the current official Arch linux package.
+# Compare this repo with the current official Arch linux-lts package.
 set -euo pipefail
 
 # shellcheck source=lib.sh
@@ -35,7 +35,7 @@ else
 fi
 
 echo "=============================================="
-echo " linux-enigmarsos status"
+echo " linux-enigmarsos-lts status"
 echo "=============================================="
 echo "EnigmarsOS package:     $ours_pkgver-$ours_pkgrel"
 echo "Upstream Linux:         $ours_kernel"
@@ -46,9 +46,9 @@ echo "BORE commit:            $BORE_COMMIT"
 echo "BORE designed for:      $BORE_DESIGNED_FOR_KERNEL"
 echo "BORE channel:           $BORE_CHANNEL"
 if [[ -n "$arch_pkgver" ]]; then
-  echo "Current Arch linux:     $arch_pkgver-$arch_pkgrel"
+  echo "Current Arch linux-lts: $arch_pkgver-$arch_pkgrel"
 else
-  echo "Current Arch linux:     (unavailable)"
+  echo "Current Arch linux-lts: (unavailable)"
 fi
 echo "----------------------------------------------"
 
@@ -63,7 +63,7 @@ if [[ -n "$arch_pkgver" ]]; then
     echo "Arch pkgrel changed: $ours_arch_pkgrel -> $arch_pkgrel"
     echo "Run: ./scripts/update-arch-kernel.sh"
   else
-    echo "Packaging tracks the current Arch linux package."
+    echo "Packaging tracks the current Arch linux-lts package."
   fi
 fi
 

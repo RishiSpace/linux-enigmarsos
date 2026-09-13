@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Build a pacman repository directory from linux-enigmarsos packages.
+# Build a pacman repository directory from linux-enigmarsos-lts packages.
 #
 # GitHub Releases cannot serve symlink assets, so this materializes
-# linux-enigmarsos.db and linux-enigmarsos.files as regular files (copies
+# linux-enigmarsos-lts.db and linux-enigmarsos-lts.files as regular files (copies
 # of the .tar.gz). Pacman can then use:
 #
-#   Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+#   Server = https://github.com/RishiSpace/linux-enigmarsos-lts/releases/latest/download
 #
 set -euo pipefail
 
@@ -16,7 +16,7 @@ usage() {
   cat <<'EOF'
 Usage: publish-repo.sh <repo-directory> [package-dir]
 
-Copies linux-enigmarsos *.pkg.tar.zst into <repo-directory>, runs
+Copies linux-enigmarsos-lts *.pkg.tar.zst into <repo-directory>, runs
 repo-add, and writes regular-file copies of .db / .files so the
 directory can be uploaded to a GitHub Release (mirror-ready).
 
@@ -38,7 +38,7 @@ if [[ -z "$PKGDIR" ]]; then
   mapfile -t ALL_PKGS < <(find_built_packages || true)
 else
   shopt -s nullglob
-  ALL_PKGS=("$PKGDIR"/linux-enigmarsos-*.pkg.tar.zst)
+  ALL_PKGS=("$PKGDIR"/linux-enigmarsos-lts-*.pkg.tar.zst)
   shopt -u nullglob
 fi
 ((${#ALL_PKGS[@]})) || die "no packages to publish"
@@ -56,13 +56,13 @@ done
 
 (
   cd "$DEST"
-  rm -f linux-enigmarsos.db linux-enigmarsos.db.tar.gz \
-        linux-enigmarsos.files linux-enigmarsos.files.tar.gz \
-        linux-enigmarsos.db.tar.gz.old linux-enigmarsos.files.tar.gz.old
-  repo-add --new --remove linux-enigmarsos.db.tar.gz linux-enigmarsos-*.pkg.tar.zst
+  rm -f linux-enigmarsos-lts.db linux-enigmarsos-lts.db.tar.gz \
+        linux-enigmarsos-lts.files linux-enigmarsos-lts.files.tar.gz \
+        linux-enigmarsos-lts.db.tar.gz.old linux-enigmarsos-lts.files.tar.gz.old
+  repo-add --new --remove linux-enigmarsos-lts.db.tar.gz linux-enigmarsos-lts-*.pkg.tar.zst
 
   # GitHub Releases: upload regular files, not symlinks.
-  for stem in linux-enigmarsos.db linux-enigmarsos.files; do
+  for stem in linux-enigmarsos-lts.db linux-enigmarsos-lts.files; do
     if [[ -L "$stem" ]]; then
       target="$(readlink -f "$stem")"
       rm -f "$stem"
@@ -72,29 +72,29 @@ done
     fi
   done
 
-  sha256sum linux-enigmarsos-*.pkg.tar.zst \
-    linux-enigmarsos.db linux-enigmarsos.db.tar.gz \
-    linux-enigmarsos.files linux-enigmarsos.files.tar.gz \
-    > SHA256SUMS 2>/dev/null || sha256sum linux-enigmarsos-*.pkg.tar.zst \
-    linux-enigmarsos.db* > SHA256SUMS
+  sha256sum linux-enigmarsos-lts-*.pkg.tar.zst \
+    linux-enigmarsos-lts.db linux-enigmarsos-lts.db.tar.gz \
+    linux-enigmarsos-lts.files linux-enigmarsos-lts.files.tar.gz \
+    > SHA256SUMS 2>/dev/null || sha256sum linux-enigmarsos-lts-*.pkg.tar.zst \
+    linux-enigmarsos-lts.db* > SHA256SUMS
 )
 
 info "pacman repository updated (GitHub-mirror regular files)"
 echo
-echo "Add the following to /etc/pacman.conf (or /etc/pacman.d/linux-enigmarsos.conf):"
+echo "Add the following to /etc/pacman.conf (or /etc/pacman.d/linux-enigmarsos-lts.conf):"
 echo
-echo "[linux-enigmarsos]"
+echo "[linux-enigmarsos-lts]"
 echo "SigLevel = Optional TrustAll"
-echo "Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download"
+echo "Server = https://github.com/RishiSpace/linux-enigmarsos/releases/download/lts"
 echo "# Server = file://$DEST"
 echo
-echo "Then: pacman -Sy linux-enigmarsos linux-enigmarsos-headers"
+echo "Then: pacman -Sy linux-enigmarsos-lts linux-enigmarsos-lts-headers"
 echo
 echo "Upload these assets onto the GitHub Release (same names every time):"
-echo "  linux-enigmarsos.db"
-echo "  linux-enigmarsos.db.tar.gz"
-echo "  linux-enigmarsos.files"
-echo "  linux-enigmarsos.files.tar.gz"
-echo "  linux-enigmarsos-*-x86_64.pkg.tar.zst"
-echo "  linux-enigmarsos-headers-*-x86_64.pkg.tar.zst"
+echo "  linux-enigmarsos-lts.db"
+echo "  linux-enigmarsos-lts.db.tar.gz"
+echo "  linux-enigmarsos-lts.files"
+echo "  linux-enigmarsos-lts.files.tar.gz"
+echo "  linux-enigmarsos-lts-*-x86_64.pkg.tar.zst"
+echo "  linux-enigmarsos-lts-headers-*-x86_64.pkg.tar.zst"
 echo "  SHA256SUMS"

@@ -1,17 +1,21 @@
 # Maintainer: EnigmarsOS
 # Contributor: Jan Alexander Steffens (heftig) <heftig@archlinux.org>
 #
-# Derived from the official Arch Linux `linux` PKGBUILD (0BSD).
-# Tracked Arch package: linux 7.2.4.arch1-2
+# Derived from the official Arch Linux `linux-lts` PKGBUILD (0BSD).
+# Tracked Arch package: linux-lts 6.18.51-1
 #
 # This is not a kernel fork. The tree is:
-#   vanilla Linux 7.1.8 + Arch patch + BORE 6.8.0 + EnigmarsOS config fragment
+#   vanilla Linux 6.18.51 + Arch linux-lts patches + BORE 6.8.0
+#   + EnigmarsOS config fragment + x86-64-v2 ISA floor
+#
+# Live ISO default kernel. Rolling v3 stays on branch main
+# (linux-enigmarsos) and is installed by Calamares.
 
-pkgbase=linux-enigmarsos
-pkgver=7.2.4.arch1
-pkgrel=3
-pkgdesc='EnigmarsOS Linux'
-url='https://github.com/enigmarsos/linux-enigmarsos'
+pkgbase=linux-enigmarsos-lts
+pkgver=6.18.51
+pkgrel=1
+pkgdesc='EnigmarsOS Linux LTS'
+url='https://github.com/RishiSpace/linux-enigmarsos'
 arch=(x86_64)
 license=(GPL-2.0-only)
 makedepends=(
@@ -40,25 +44,26 @@ options=(
   !strip
 )
 
-# Arch linux package this PKGBUILD was last synchronized against.
-_arch_pkgrel=2
-_srcname=linux-${pkgver%.*}
-_srctag=v${pkgver%.*}-${pkgver##*.}
-_arch_linux_url='https://github.com/archlinux/linux'
+# Arch linux-lts package this PKGBUILD was last synchronized against.
+_arch_pkgrel=1
+_srcname=linux-$pkgver
+_srctag=v$pkgver
 
-# Compiler ISA floor. Vanilla 7.2 has no CONFIG_X86_64_VERSION; the
-# kernel Makefile hardcodes -march=x86-64. We rewrite that to v3.
-# Minimum CPU: AVX2 (Intel Haswell 2013+, AMD Excavator 2015+ / all Zen).
-_x86_64_march=x86-64-v3
+# Compiler ISA floor. Vanilla 6.18 hardcodes -march=x86-64. Rewrite to
+# v2 so the live ISO (and GitHub Actions DKMS) runs on x86-64-v2 CPUs.
+# Minimum CPU: SSE4.2 (Nehalem 2008+, Silvermont, Bulldozer+).
+_x86_64_march=x86-64-v2
 
 # BORE pin. Keep in sync with patches/bore.meta.
 _bore_version=6.8.0
-_bore_commit=8fdcbdd4446300f045a509ce23f72269f5ade52b
-_bore_designed_for=7.2-rc1
+_bore_commit=65bf097b3d48e180c1dc5498cb69308ded4f87a7
+_bore_designed_for=6.18.48
 
 source=(
   https://cdn.kernel.org/pub/linux/kernel/v${pkgver%%.*}.x/${_srcname}.tar.{xz,sign}
-  $_arch_linux_url/releases/download/$_srctag/linux-$_srctag.patch.zst{,.sig}
+  0001-add-sysctl-to-allow-disabling-unprivileged-CLONE_NEW.patch
+  0002-drm-amdgpu-avoid-memory-allocation-in-the-critical-c.patch
+  0003-drm-amdgpu-use-GFP_ATOMIC-instead-of-NOWAIT-in-the-c.patch
   bore.patch
   enigmarsos.config
 )
@@ -68,23 +73,24 @@ source_x86_64=(
 validpgpkeys=(
   ABAF11C65A2970B130ABE3C479BE3E4300411886  # Linus Torvalds
   647F28654894E3BD457199BE38DBBDC86092693E  # Greg Kroah-Hartman
-  83BC8889351B5DEBBB68416EB8AC08600F108CDF  # Jan Alexander Steffens (heftig)
 )
-b2sums=('1dc0bee4d040846ac31672400339c179daf68919b2d923261205febbb4ff654d1ac21a4bc700f5bd46a7676335692565678b8142549d83c1d0a0da3b9db2e3d4'
+b2sums=('76ef8f305ed9f5bd23ba30d90df4928cb45f877a0b9961fccf601d03aa4734c4905a4af384cd1728388b70c199fbaae8134c6acb51bcce385ef4bb72b2dc2227'
         'SKIP'
-        '911acab50d12d1b81980ae5b639d222e6c2b4471c08b2eb0bf6221036ca435b18a836aac8855834acc56a0a6b01eb60087775df4f83f33d060410327a4786f30'
-        'SKIP'
-        'ab0447865d6fc4885f092d53701b56a2e3ec0643fb9fb687b62f581101d01d42e966ffbe0bf5a3b87969e4008c1753b7d52de7308559c79e951ff604fbfa9648'
-        '1ce4482c88ccf6f0f8e59dd550beb6aa41b8e1d908548ed6c5c02d9b2842319c90ba13185a70b0e57dea09fa9137b67e772f7a3660cc829e8c75f4d5ebca2372')
-b2sums_x86_64=('60a991bded2a41a9b3880445f5cefe3f19e593b2204a007a423d8a5f2858bbc7d3babab02ffebd9ff8fd37f3a1a32b3ca2512cbe768f5cb154deffacfbfee28a')
+        'f98f4a2e714f7c9e05740caaad2bf014065ec950c096df74a3dee8b2ce6549f034adf6f87a76168f513aa68eb738edbdb6fe1a3f1b3a5104201c65199b5b931e'
+        '6ca246df80fa85f9c21d090f87ee31e33acb02f3c1147944750e0896ebf199bc0cf427a164dacbdd9baa26dbdbce2fabd89ebdb6a8ce5dae83fc455b27a56cc8'
+        'a612d5ea58485eeaa5cce0b30074ab3188f4321c4759448780de2f3f656821356d640df433e31bd4e8f2c9719c8e275374ddea29b9504335ed0981be5ac7bf7b'
+        'c749ca0e92ab9e719e664082eb73329a657606fb132e4deb3385b9aa8699c33f2bc78a295435ceab5c7585279143970ff38e0c970243cd419d53b0c68a1b0b59'
+        '8d90f477415b6cb19e5c2a906ad88fb42f27e6beabdfb405ea80b47b3b5f32c5f1903535375b19b69d6189f7020139fe55c66c05d51cd7bec305df76ee72499f')
+b2sums_x86_64=('137a4595872b4d495582a4629fad6d04b6e4cf5dc1599a701bc26785c1df8279b3daba4edb480ba2c1f33853bc2e70ad45cfbc91532e2b6bbcf7fe45aa9704bb')
 
-# https://www.kernel.org/pub/linux/kernel/v7.x/sha256sums.asc
-sha256sums=('01710ee01737dac492f1bae52becd057e08d20d11589089aa06accff415c28dd'
+# https://www.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc
+sha256sums=('ba2f60f858bf4d1f929101faa356c93dc8b925b17aaa9f95eabd4627758df613'
             'SKIP'
-            '07b0526c8d8b9bae9dacf1a90aa77a92de8fca505ea35d3b523f28556361fc16'
-            'SKIP'
-        '432c4e2f750d09b255024d547bdf5b014862ab297083ea04c62869db90d920ee'
-        '777a7495ff3ed47dbf5f2ae044d50ac5d298c2c8a7e12ef4f3455d5656d2c93d')
+            '0bb3b4cda53db35c10e0a34defb5f52f3c91895d7b4a9f93b3f40f5401a71e02'
+            '70d54dfde13e52ea1109c4222a987a29ada68feec35dca9ce4afd6f7977e8740'
+            '44caa7c6a79055539f16ab118bece58934cdf93557643a50017634366c864b91'
+            'f650285feb58e9f3654836c8f84fb82723c30b3ad77a26cea5f218ce41ed7b14'
+            '39b41963f4925b6ef1391ca41869d7d76335af36d242eb85bbbc06d4a7d5a527')
 
 export KBUILD_BUILD_HOST=enigmarsos
 export KBUILD_BUILD_USER=$pkgbase
@@ -107,12 +113,8 @@ prepare() {
   cd $_srcname
 
   echo "Setting version..."
-  # Arch's patch sets EXTRAVERSION=-arch1. Clear it so uname -r looks like
-  # other distros (7.1.8-2-enigmarsos), not 7.1.8-arch1-2-enigmarsos.
-  # Keep upstream version + pkgrel so /usr/lib/modules/* stays unique.
-  sed -i 's/^EXTRAVERSION =.*/EXTRAVERSION =/' Makefile
   echo "-$pkgrel" > localversion.10-pkgrel
-  echo "-enigmarsos" > localversion.20-pkgname
+  echo "-enigmarsos-lts" > localversion.20-pkgname
 
   local src
   for src in "${source[@]}"; do
@@ -132,8 +134,7 @@ prepare() {
     || _die "BORE version string $_bore_version not found in include/linux/sched/bore.h"
 
   echo "Setting x86-64 ISA level to $_x86_64_march..."
-  # Same position as vanilla -march=x86-64, after -mno-avx/-mno-sse, so
-  # the kernel still must not emit SIMD. v3 unlocks BMI2/LZCNT/MOVBE.
+  # Same position as vanilla -march=x86-64, after -mno-avx/-mno-sse.
   grep -q -- '-march=x86-64 -mtune=generic' arch/x86/Makefile \
     || _die "arch/x86/Makefile no longer contains the vanilla -march=x86-64 line"
   sed -i "s/-march=x86-64 -mtune=generic/-march=${_x86_64_march} -mtune=generic/" \
@@ -166,8 +167,8 @@ prepare() {
   local krel
   krel=$(<version)
   echo "Prepared $pkgbase version $krel"
-  [[ $krel == *enigmarsos* ]] \
-    || _die "kernel release '$krel' does not identify EnigmarsOS"
+  [[ $krel == *enigmarsos-lts* ]] \
+    || _die "kernel release '$krel' does not identify EnigmarsOS LTS"
 }
 
 build() {
@@ -188,7 +189,8 @@ _package() {
     'linux-firmware: firmware images needed for some devices'
     'scx-scheds: to use sched-ext schedulers'
     'wireless-regdb: to set the correct wireless channels of your country'
-    'linux: official Arch kernel used as the EnigmarsOS fallback'
+    'linux: official Arch kernel used as an extra fallback'
+    'linux-enigmarsos: rolling EnigmarsOS kernel (installed by Calamares)'
   )
   provides=(
     KSMBD-MODULE

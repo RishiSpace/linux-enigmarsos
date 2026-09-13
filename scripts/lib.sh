@@ -71,16 +71,18 @@ package_version() {
 upstream_kernel() {
   local pkgver
   pkgver="$(pkgbuild_var pkgver)"
-  printf '%s\n' "${pkgver%.*}"
+  # rolling: 7.2.4.arch1 → 7.2.4; lts: 6.18.51 → 6.18.51
+  if [[ "$pkgver" == *.arch* ]]; then
+    printf '%s\n' "${pkgver%.*}"
+  else
+    printf '%s\n' "$pkgver"
+  fi
 }
 
 expected_kernel_release() {
-  # EXTRAVERSION is cleared (no -arch1). localversion files add
-  # -$pkgrel and -enigmarsos → e.g. 7.1.8-2-enigmarsos
-  local pkgver pkgrel
-  pkgver="$(pkgbuild_var pkgver)"
-  pkgrel="$(pkgbuild_var pkgrel)"
-  printf '%s-%s-enigmarsos\n' "${pkgver%.*}" "$pkgrel"
+  # localversion files add -$pkgrel and -enigmarsos-lts
+  # → e.g. 6.18.51-1-enigmarsos-lts
+  printf '%s-%s-enigmarsos-lts\n' "$(upstream_kernel)" "$(pkgbuild_var pkgrel)"
 }
 
 find_built_packages() {
@@ -91,7 +93,7 @@ find_built_packages() {
   for dir in "${search_dirs[@]}"; do
     [[ -d "$dir" ]] || continue
     shopt -s nullglob
-    local found=("$dir"/linux-enigmarsos-*.pkg.tar.zst)
+    local found=("$dir"/linux-enigmarsos-lts-*.pkg.tar.zst)
     shopt -u nullglob
     if ((${#found[@]})); then
       printf '%s\n' "${found[@]}"
@@ -128,14 +130,14 @@ file_sha256() {
 
 arch_linux_json() {
   curl -fsSL --retry 3 --retry-delay 2 \
-    "https://archlinux.org/packages/core/x86_64/linux/json/"
+    "https://archlinux.org/packages/core/x86_64/linux-lts/json/"
 }
 
-# Print "pkgver pkgrel" of the current official Arch linux package.
+# Print "pkgver pkgrel" of the current official Arch linux-lts package.
 current_arch_linux() {
   python3 - <<'PY'
-import json, sys, urllib.request
-url = "https://archlinux.org/packages/core/x86_64/linux/json/"
+import json, urllib.request
+url = "https://archlinux.org/packages/core/x86_64/linux-lts/json/"
 with urllib.request.urlopen(url, timeout=30) as resp:
     data = json.load(resp)
 print(data["pkgver"], data["pkgrel"])

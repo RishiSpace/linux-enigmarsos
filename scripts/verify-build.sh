@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Validate built linux-enigmarsos packages. Fail loud; never "almost OK".
+# Validate built linux-enigmarsos-lts packages. Fail loud; never "almost OK".
 set -euo pipefail
 
 # shellcheck source=lib.sh
@@ -9,7 +9,7 @@ usage() {
   cat <<'EOF'
 Usage: verify-build.sh [package-dir]
 
-Inspects linux-enigmarsos and linux-enigmarsos-headers packages.
+Inspects linux-enigmarsos-lts and linux-enigmarsos-lts-headers packages.
 A failure here must prevent publishing.
 EOF
 }
@@ -30,35 +30,35 @@ if [[ -z "$PKGDIR" ]]; then
   mapfile -t ALL_PKGS < <(find_built_packages || true)
 else
   shopt -s nullglob
-  ALL_PKGS=("$PKGDIR"/linux-enigmarsos-"${ver}"-*.pkg.tar.zst
-            "$PKGDIR"/linux-enigmarsos-headers-"${ver}"-*.pkg.tar.zst)
+  ALL_PKGS=("$PKGDIR"/linux-enigmarsos-lts-"${ver}"-*.pkg.tar.zst
+            "$PKGDIR"/linux-enigmarsos-lts-headers-"${ver}"-*.pkg.tar.zst)
   shopt -u nullglob
 fi
 # Ignore leftover older builds sitting next to this pkgver-pkgrel.
 filtered=()
 for p in "${ALL_PKGS[@]}"; do
   base="$(basename "$p")"
-  if [[ "$base" == linux-enigmarsos-"${ver}"-* || "$base" == linux-enigmarsos-headers-"${ver}"-* ]]; then
+  if [[ "$base" == linux-enigmarsos-lts-"${ver}"-* || "$base" == linux-enigmarsos-lts-headers-"${ver}"-* ]]; then
     filtered+=("$p")
   fi
 done
 ALL_PKGS=("${filtered[@]}")
 
-((${#ALL_PKGS[@]})) || die "no linux-enigmarsos-*.pkg.tar.zst packages found"
+((${#ALL_PKGS[@]})) || die "no linux-enigmarsos-lts-*.pkg.tar.zst packages found"
 
 KERNEL_PKG=""
 HEADERS_PKG=""
 for p in "${ALL_PKGS[@]}"; do
   base="$(basename "$p")"
-  if [[ "$base" == linux-enigmarsos-headers-* ]]; then
+  if [[ "$base" == linux-enigmarsos-lts-headers-* ]]; then
     HEADERS_PKG="$p"
-  elif [[ "$base" == linux-enigmarsos-* && "$base" != linux-enigmarsos-headers-* ]]; then
+  elif [[ "$base" == linux-enigmarsos-lts-* && "$base" != linux-enigmarsos-lts-headers-* ]]; then
     KERNEL_PKG="$p"
   fi
 done
 
-[[ -n "$KERNEL_PKG" ]] || die "linux-enigmarsos package missing"
-[[ -n "$HEADERS_PKG" ]] || die "linux-enigmarsos-headers package missing"
+[[ -n "$KERNEL_PKG" ]] || die "linux-enigmarsos-lts package missing"
+[[ -n "$HEADERS_PKG" ]] || die "linux-enigmarsos-lts-headers package missing"
 
 info "kernel package:  $KERNEL_PKG"
 info "headers package: $HEADERS_PKG"
@@ -75,10 +75,10 @@ if command -v pacman >/dev/null 2>&1; then
   info "Package metadata"
   pacman -Qip "$KERNEL_PKG" | tee "$WORKDIR/kernel.qip"
   pacman -Qip "$HEADERS_PKG" | tee "$WORKDIR/headers.qip"
-  grep -q '^Name[[:space:]]*:[[:space:]]*linux-enigmarsos$' "$WORKDIR/kernel.qip" \
-    && pass "pkgname linux-enigmarsos" || bad "pkgname is not linux-enigmarsos"
-  grep -q '^Name[[:space:]]*:[[:space:]]*linux-enigmarsos-headers$' "$WORKDIR/headers.qip" \
-    && pass "pkgname linux-enigmarsos-headers" || bad "pkgname is not linux-enigmarsos-headers"
+  grep -q '^Name[[:space:]]*:[[:space:]]*linux-enigmarsos-lts$' "$WORKDIR/kernel.qip" \
+    && pass "pkgname linux-enigmarsos-lts" || bad "pkgname is not linux-enigmarsos-lts"
+  grep -q '^Name[[:space:]]*:[[:space:]]*linux-enigmarsos-lts-headers$' "$WORKDIR/headers.qip" \
+    && pass "pkgname linux-enigmarsos-lts-headers" || bad "pkgname is not linux-enigmarsos-lts-headers"
   grep -q "^Version[[:space:]]*:[[:space:]]*$(package_version)$" "$WORKDIR/kernel.qip" \
     && pass "version $(package_version)" || bad "unexpected package version"
   if grep -q '^Depends[[:space:]]*:.*linux[^-]' "$WORKDIR/kernel.qip"; then
@@ -114,8 +114,8 @@ has_prefix 'usr/lib/modules/.*/kernel/' "$WORKDIR/kernel.list" \
   && pass "modules present" || bad "module tree missing"
 has_path 'usr/lib/modules/.*/build/Makefile' "$WORKDIR/headers.list" \
   && pass "headers build tree present" || bad "headers Makefile missing"
-has_prefix 'usr/src/linux-enigmarsos' "$WORKDIR/headers.list" \
-  && pass "headers /usr/src symlink present" || bad "/usr/src/linux-enigmarsos missing"
+has_prefix 'usr/src/linux-enigmarsos-lts' "$WORKDIR/headers.list" \
+  && pass "headers /usr/src symlink present" || bad "/usr/src/linux-enigmarsos-lts missing"
 
 # Host bsdtar (libarchive) does not support GNU tar --wildcards.
 extract_matching() {
@@ -150,8 +150,8 @@ bore_c="$(find "$WORKDIR/usr/lib/modules" -name bore.c -print -quit || true)"
 versionf="$(find "$WORKDIR/usr/lib/modules" -name version -print -quit || true)"
 
 [[ -n "$vmlinuz" && -s "$vmlinuz" ]] && pass "vmlinuz extracted ($(stat -c%s "$vmlinuz") bytes)" || bad "could not extract vmlinuz"
-[[ -n "$pkgbase" ]] && [[ "$(cat "$pkgbase")" == "linux-enigmarsos" ]] \
-  && pass "pkgbase is linux-enigmarsos" || bad "pkgbase is not linux-enigmarsos"
+[[ -n "$pkgbase" ]] && [[ "$(cat "$pkgbase")" == "linux-enigmarsos-lts" ]] \
+  && pass "pkgbase is linux-enigmarsos-lts" || bad "pkgbase is not linux-enigmarsos-lts"
 
 krel=""
 if [[ -n "$versionf" ]]; then
@@ -163,10 +163,10 @@ if [[ -z "$krel" && -n "$vmlinuz" ]]; then
 fi
 
 echo "    Kernel release: ${krel:-unknown}"
-if [[ "$krel" == *enigmarsos* ]]; then
-  pass "release string identifies EnigmarsOS"
+if [[ "$krel" == *enigmarsos-lts* ]]; then
+  pass "release string identifies EnigmarsOS LTS"
 else
-  bad "release string '$krel' does not identify EnigmarsOS"
+  bad "release string '$krel' does not identify EnigmarsOS LTS"
 fi
 if [[ "$krel" == "$(expected_kernel_release)" ]]; then
   pass "release string matches $(expected_kernel_release)"

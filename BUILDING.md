@@ -1,4 +1,4 @@
-# Building linux-enigmarsos
+# Building linux-enigmarsos-lts
 
 Production builds happen in GitHub Actions. Use this document only for
 debugging, patch development, or an emergency local release.
@@ -35,17 +35,15 @@ exposes them as `bore.patch`, `enigmarsos.config`, and `config.x86_64`
 
 ## What `makepkg` actually does
 
-1. Downloads `linux-7.1.8.tar.xz` from kernel.org and the Arch patch
-   from `github.com/archlinux/linux`.
+1. Downloads `linux-6.18.51.tar.xz` from kernel.org.
 2. Verifies SHA-256 / BLAKE2 and, if the keys are in your gnupg
    keyring, the detached signatures.
-3. Applies `linux-v7.1.8-arch1.patch` then `bore.patch` with
-   `patch -Np1 --fuzz=0`.
-4. Copies `config/config.x86_64`, enables `CONFIG_SCHED_BORE`, runs
-   `olddefconfig`, and refuses to continue if the required options are
-   missing.
+3. Applies the Arch `linux-lts` `000*.patch` files, then `bore.patch`,
+   with `patch -Np1 --fuzz=0`.
+4. Copies `config/config.x86_64`, enables `CONFIG_SCHED_BORE`, sets
+   `-march=x86-64-v2`, runs `olddefconfig`.
 5. Compiles `vmlinux` / modules and `bpftool`'s `vmlinux.h`.
-6. Packages `linux-enigmarsos` and `linux-enigmarsos-headers`.
+6. Packages `linux-enigmarsos-lts` and `linux-enigmarsos-lts-headers`.
 
 There is no docs package. There is no `htmldocs` build.
 

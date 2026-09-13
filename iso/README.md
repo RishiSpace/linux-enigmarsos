@@ -5,24 +5,16 @@ dependency. Do not copy `vmlinuz` into the ISO overlay by hand.
 
 ## Package list
 
-In the archiso / releng profile, replace:
+Live ISO default (this branch):
 
 ```
-linux
-linux-headers
+linux-enigmarsos-lts
+linux-enigmarsos-lts-headers
 ```
 
-with:
-
-```
-linux-enigmarsos
-linux-enigmarsos-headers
-linux
-linux-headers
-```
-
-Keeping both is the fallback story: the live environment and the
-installed system can boot EnigmarsOS (BORE) or the stock Arch kernel.
+Keep stock `linux` as a live fallback if you want. Rolling
+`linux-enigmarsos` is **not** the live default; Calamares pulls it at
+install time from `main` / GitHub Latest.
 
 ## Repository
 

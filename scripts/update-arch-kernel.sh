@@ -9,7 +9,7 @@ usage() {
   cat <<'EOF'
 Usage: update-arch-kernel.sh [--check]
 
-Fetches the official Arch linux packaging tree and updates:
+Fetches the official Arch linux-lts packaging tree and updates:
 
   - pkgver / checksums / source tags in PKGBUILD
   - _arch_pkgrel
@@ -38,12 +38,12 @@ need_cmd curl
 ours_pkgver="$(pkgbuild_var pkgver)"
 ours_arch_pkgrel="$(pkgbuild_var _arch_pkgrel)"
 
-info "Querying current Arch linux package"
+info "Querying current Arch linux-lts package"
 arch_line="$(current_arch_linux)"
 arch_pkgver="${arch_line%% *}"
 arch_pkgrel="${arch_line##* }"
 echo "    this repo:  $ours_pkgver (tracked Arch pkgrel $ours_arch_pkgrel)"
-echo "    Arch linux: $arch_pkgver-$arch_pkgrel"
+echo "    Arch linux-lts: $arch_pkgver-$arch_pkgrel"
 
 if [[ "$CHECK_ONLY" -eq 1 ]]; then
   if [[ "$arch_pkgver" == "$ours_pkgver" && "$arch_pkgrel" == "$ours_arch_pkgrel" ]]; then
@@ -59,20 +59,13 @@ cleanup() { rm -rf "$WORKDIR"; }
 trap cleanup EXIT
 
 clone_ok=0
-info "Cloning Arch linux packaging"
+info "Cloning Arch linux-lts packaging"
 if git clone --depth 1 \
-    https://gitlab.archlinux.org/archlinux/packaging/packages/linux.git \
+    https://gitlab.archlinux.org/archlinux/packaging/packages/linux-lts.git \
     "$WORKDIR/linux" >/dev/null 2>&1; then
   clone_ok=1
-else
-  warn "gitlab.archlinux.org clone failed; trying GitHub mirror"
-  if git clone --depth 1 \
-      https://github.com/ClangBuiltLinux/linux_pkgbuild.git \
-      "$WORKDIR/linux" >/dev/null 2>&1; then
-    clone_ok=1
-  fi
 fi
-[[ "$clone_ok" -eq 1 ]] || die "could not clone Arch linux packaging"
+[[ "$clone_ok" -eq 1 ]] || die "could not clone Arch linux-lts packaging"
 
 ARCH_PKG="$WORKDIR/linux/PKGBUILD"
 [[ -f "$ARCH_PKG" ]] || die "cloned tree has no PKGBUILD"
@@ -150,7 +143,7 @@ ours = re.sub(r'^sha256sums=\(.*?\)', merged_sha, ours, count=1, flags=re.S | re
 ours = re.sub(r'^b2sums_x86_64=\(.*?\)', new_b2_x86, ours, count=1, flags=re.S | re.M)
 ours = re.sub(
     r'# Tracked Arch package:.*',
-    f'# Tracked Arch package: linux {new_pkgver}-{new_pkgrel}',
+    f'# Tracked Arch package: linux-lts {new_pkgver}-{new_pkgrel}',
     ours,
     count=1,
 )
@@ -168,6 +161,15 @@ elif [[ -f "$WORKDIR/linux/config" ]]; then
 else
   die "cloned packaging has no config.x86_64"
 fi
+
+shopt -s nullglob
+for p in "$WORKDIR/linux"/000*.patch; do
+  base="$(basename "$p")"
+  cp "$p" "$REPO_ROOT/patches/$base"
+  ln -sfn "patches/$base" "$REPO_ROOT/$base"
+  info "updated patches/$base"
+done
+shopt -u nullglob
 
 if [[ -d "$WORKDIR/linux/keys/pgp" ]]; then
   mkdir -p "$REPO_ROOT/keys/pgp"
