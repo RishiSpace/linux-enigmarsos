@@ -56,7 +56,7 @@ _x86_64_march=x86-64-v2
 
 # BORE pin. Keep in sync with patches/bore.meta.
 _bore_version=6.8.0
-_bore_commit=65bf097b3d48e180c1dc5498cb69308ded4f87a7
+_bore_commit=8fdcbdd4446300f045a509ce23f72269f5ade52b
 _bore_designed_for=6.18.48
 
 source=(
@@ -89,8 +89,8 @@ sha256sums=('ba2f60f858bf4d1f929101faa356c93dc8b925b17aaa9f95eabd4627758df613'
             '0bb3b4cda53db35c10e0a34defb5f52f3c91895d7b4a9f93b3f40f5401a71e02'
             '70d54dfde13e52ea1109c4222a987a29ada68feec35dca9ce4afd6f7977e8740'
             '44caa7c6a79055539f16ab118bece58934cdf93557643a50017634366c864b91'
-            'f650285feb58e9f3654836c8f84fb82723c30b3ad77a26cea5f218ce41ed7b14'
-            '39b41963f4925b6ef1391ca41869d7d76335af36d242eb85bbbc06d4a7d5a527')
+        'f650285feb58e9f3654836c8f84fb82723c30b3ad77a26cea5f218ce41ed7b14'
+        '39b41963f4925b6ef1391ca41869d7d76335af36d242eb85bbbc06d4a7d5a527')
 
 export KBUILD_BUILD_HOST=enigmarsos
 export KBUILD_BUILD_USER=$pkgbase
