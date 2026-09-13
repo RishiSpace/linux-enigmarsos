@@ -5,7 +5,7 @@
 # linux-enigmarsos-lts.db and linux-enigmarsos-lts.files as regular files (copies
 # of the .tar.gz). Pacman can then use:
 #
-#   Server = https://github.com/RishiSpace/linux-enigmarsos-lts/releases/latest/download
+#   Server = https://github.com/RishiSpace/linux-enigmarsos/releases/download/lts
 #
 set -euo pipefail
 
