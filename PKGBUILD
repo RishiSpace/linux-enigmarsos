@@ -13,7 +13,7 @@
 
 pkgbase=linux-enigmarsos-lts
 pkgver=6.18.51
-pkgrel=2
+pkgrel=3
 pkgdesc='EnigmarsOS Linux LTS'
 url='https://github.com/RishiSpace/linux-enigmarsos'
 arch=(x86_64)
@@ -106,6 +106,28 @@ _host_make() {
   make HOSTCFLAGS="${_hostcflags}" HOSTCXXFLAGS="${_hostcxxflags}" "$@"
 }
 
+# CachyOS glibc crt (Scrt1.o) stamps every linked ELF as
+# "x86 ISA needed: … v3, v4" even when compiled with -march=x86-64-v2.
+# glibc on GitHub Actions then aborts: CPU ISA level is lower than required.
+# The actual code is baseline; drop the note so DKMS can run fixdep.
+_sanitize_host_isa() {
+  local f
+  while IFS= read -r -d '' f; do
+    case "$(file -Sib "$f" 2>/dev/null || true)" in
+      application/x-executable\;*|application/x-pie-executable\;*|application/x-sharedlib\;*) ;;
+      *) continue ;;
+    esac
+    if readelf -n "$f" 2>/dev/null | grep -qE 'x86-64-v[34]'; then
+      echo "    removing inflated ISA note from ${f#"$PWD"/}"
+      objcopy --remove-section=.note.gnu.property "$f" \
+        || _die "objcopy failed on $f"
+    fi
+    if readelf -n "$f" 2>/dev/null | grep -qE 'x86-64-v[34]'; then
+      _die "$f still tagged x86-64-v3/v4 after objcopy"
+    fi
+  done < <(find scripts tools/objtool tools/bpf/resolve_btfids -type f -print0 2>/dev/null)
+}
+
 _die() {
   printf '==> ERROR: %s\n' "$*" >&2
   exit 1
@@ -185,6 +207,8 @@ build() {
   cd $_srcname
   _host_make all
   _host_make -C tools/bpf/bpftool vmlinux.h feature-clang-bpf-co-re=1
+  echo "Sanitizing host-tool ISA notes for GitHub Actions (CachyOS crt is v4)..."
+  _sanitize_host_isa
 }
 
 _package() {
@@ -255,6 +279,7 @@ _package-headers() {
   esac
 
   echo "Installing build files..."
+  _sanitize_host_isa
   install -Dt "$builddir" -m644 .config Makefile Module.symvers System.map \
     localversion.* version vmlinux tools/bpf/bpftool/vmlinux.h
   install -Dt "$builddir/kernel" -m644 kernel/Makefile
