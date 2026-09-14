@@ -42,7 +42,7 @@ echo "==> Preparing tree"
 ./scripts/prepare-build.sh
 
 echo "==> Compiling (this takes a long time at $MAKEFLAGS)"
-makepkg -sf --noconfirm --needed
+makepkg -Csf --noconfirm --needed
 
 echo "==> Verifying packages"
 ./scripts/verify-build.sh "$PKGDEST"

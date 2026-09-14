@@ -20,7 +20,9 @@ gpg --import keys/pgp/*.asc || true
 ./scripts/update-bore.sh
 ./scripts/prepare-build.sh
 
-makepkg -sf --noconfirm --needed
+# -C wipes src/ first. A failed prepare() leaves bore.c in place;
+# applying bore.patch again then skips the new-file hunks and dies.
+makepkg -Csf --noconfirm --needed
 
 ./scripts/verify-build.sh "$PKGDEST"
 ls -lh "$PKGDEST"/linux-enigmarsos-lts-*.pkg.tar.zst

@@ -86,7 +86,7 @@ sudo -u builder --preserve-env=SOURCE_DATE_EPOCH,CCACHE_DIR,ENABLE_CCACHE \
     cd '$BUILDROOT/pkg'
     ./scripts/prepare-build.sh
     ./scripts/status.sh || true
-    makepkg -sf --noconfirm --needed
+    makepkg -Csf --noconfirm --needed
     ./scripts/verify-build.sh '$OUT'
   "
 

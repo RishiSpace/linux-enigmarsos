@@ -58,6 +58,11 @@ will fail on a corrupt tarball. Signatures are `SKIP` in the checksum
 arrays the same way Arch does it; `validpgpkeys` is what makepkg uses
 for `.sign` files.
 
+A failed `prepare()` leaves `src/linux-*/kernel/sched/bore.c` in place.
+The next run then skips those BORE hunks (`file already exists`) and
+dies. Use `makepkg -C` (or `./build-up.sh`, which now passes `-C`) so
+`src/` is wiped first.
+
 ## Useful `makepkg` flags
 
 ```bash
