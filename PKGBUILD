@@ -13,7 +13,7 @@
 
 pkgbase=linux-enigmarsos-lts
 pkgver=6.18.51
-pkgrel=1
+pkgrel=2
 pkgdesc='EnigmarsOS Linux LTS'
 url='https://github.com/RishiSpace/linux-enigmarsos'
 arch=(x86_64)
@@ -96,6 +96,16 @@ export KBUILD_BUILD_HOST=enigmarsos
 export KBUILD_BUILD_USER=$pkgbase
 export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
 
+# Kernel Makefile assigns HOSTCFLAGS with `=`, which ignores the environment.
+# Pass these on every `make` command line. gcc on a v3 packager still emits
+# v3 host binaries (fixdep) unless -march is explicit — those then abort on
+# GitHub Actions (v2) with "CPU ISA level is lower than required".
+_hostcflags="-Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu11 -march=${_x86_64_march}"
+_hostcxxflags="-O2 -march=${_x86_64_march}"
+_host_make() {
+  make HOSTCFLAGS="${_hostcflags}" HOSTCXXFLAGS="${_hostcxxflags}" "$@"
+}
+
 _die() {
   printf '==> ERROR: %s\n' "$*" >&2
   exit 1
@@ -152,7 +162,7 @@ prepare() {
   scripts/config --file .config --set-val MIN_BASE_SLICE_NS 2000000
   scripts/config --file .config --disable X86_NATIVE_CPU
 
-  make olddefconfig
+  _host_make olddefconfig
   diff -u ../config.$CARCH .config || :
 
   echo "Validating EnigmarsOS configuration..."
@@ -163,7 +173,7 @@ prepare() {
   # scripts/config -s prints 'n' for unset bools that have a default of n
   _require_config X86_NATIVE_CPU n
 
-  make -s kernelrelease > version
+  _host_make -s kernelrelease > version
   local krel
   krel=$(<version)
   echo "Prepared $pkgbase version $krel"
@@ -173,8 +183,8 @@ prepare() {
 
 build() {
   cd $_srcname
-  make all
-  make -C tools/bpf/bpftool vmlinux.h feature-clang-bpf-co-re=1
+  _host_make all
+  _host_make -C tools/bpf/bpftool vmlinux.h feature-clang-bpf-co-re=1
 }
 
 _package() {

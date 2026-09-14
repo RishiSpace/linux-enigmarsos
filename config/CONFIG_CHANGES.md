@@ -53,6 +53,12 @@ This branch rewrites that line (and the matching rustc `-Ctarget-cpu`) to
 v2 is SSE4.2 (Intel Nehalem 2008+, Silvermont, AMD Bulldozer+). Kernel
 SIMD stays off (`-mno-avx` is still applied first).
 
+Host tools that ship in `linux-enigmarsos-lts-headers` (`fixdep`,
+`modpost`, bpftool, …) use the same `-march=x86-64-v2` via `HOSTCFLAGS`
+on every `make` in `PKGBUILD`. Without that, gcc on a v3 packager still
+emits v3 `fixdep`, and ISO DKMS on GitHub Actions dies with
+`CPU ISA level is lower than required`.
+
 Do **not** raise this branch to v3.
 
 ### `CONFIG_MIN_BASE_SLICE_NS`
