@@ -13,13 +13,14 @@ Arch publishes a new linux-lts
         ↓
 review the git diff
         ↓
-commit and either wait for the 1st/15th or Run workflow
+commit, then wait for Wednesday or run it by hand
+        (Actions → Build linux-enigmarsos-lts → Run workflow)
         ↓
-CI compiles, tests, publishes a GitHub Release
-        (packages + linux-enigmarsos.db — pacman mirror)
+CI compiles, tests, updates the `lts` GitHub Release
+        (packages + linux-enigmarsos-lts.db — pacman mirror)
         ↓
-ISO / installed systems: pacman -Sy linux-enigmarsos
-        Server = …/releases/latest/download
+ISO / installed systems: pacman -Sy linux-enigmarsos-lts
+        Server = …/releases/download/lts
 ```
 
 ## Weekly (or whenever you open the laptop)
@@ -51,8 +52,8 @@ ISO / installed systems: pacman -Sy linux-enigmarsos
 5. `git diff` — read the BORE patch header and the PKGBUILD version
    block. If the patch file grew a lot or touches new subsystems,
    read those hunks.
-6. Commit. Trigger **Build linux-enigmarsos** or wait for the
-   fortnightly schedule.
+6. Commit to `lts`. Trigger **Build linux-enigmarsos-lts** by hand,
+   or wait for the Wednesday schedule (04:00 UTC).
 
 Do not rebase BORE by hand. Do not delete a hunk to make `patch`
 succeed. A failed apply is the correct answer.
@@ -67,14 +68,15 @@ git diff patches/bore.patch
 
 Then compile in CI.
 
-## If the fortnightly build fails
+## If the Wednesday build fails
 
 1. Open the failed run. The first interesting line is usually
    `patch … did not apply cleanly` or a missing `CONFIG_SCHED_BORE`.
-2. If Arch moved and we did not, run the update scripts and push.
-3. If BORE no longer applies, leave the last good release up, keep
-   `linux` as the ISO default if you have to, and wait for an upstream
-   BORE patch. Do not ship `linux-enigmarsos` without BORE.
+2. If Arch moved and we did not, run the update scripts, commit to
+   `lts`, and run the workflow again.
+3. If BORE no longer applies, leave the last good `lts` release up and
+   wait for an upstream BORE patch. Do not ship
+   `linux-enigmarsos-lts` without BORE.
 4. QEMU failures: download the artefacts, run `./scripts/qemu-smoke.sh`
    locally, and read the serial log. A hang usually means the kernel
    image is not booting on `ttyS0` (config regression), not a flaky
@@ -82,17 +84,21 @@ Then compile in CI.
 
 ## Changing the schedule
 
-Edit `.github/workflows/build.yml`:
+Edit `.github/workflows/build-lts.yml`:
 
 ```yaml
 schedule:
-  - cron: '0 4 1,15 * *'
+  - cron: '0 4 * * 3'
 ```
 
 Examples:
 
 - weekly Mondays 04:00 UTC: `0 4 * * 1`
-- only the 1st of the month: `0 4 1 * *`
+- twice a month: `0 4 1,15 * *`
+
+The file must also exist on `main` (schedules only fire on the default
+branch) and checks out `lts`, so mirror schedule edits to both
+branches.
 
 ## Changing the container pin
 
@@ -106,8 +112,9 @@ hand before trusting a scheduled run.
 
 ## ISO and fallback
 
-See [`iso/README.md`](iso/README.md). The ISO should install both
-`linux-enigmarsos` and `linux`. Never hard-code a vmlinuz path.
+See [`iso/README.md`](iso/README.md). The ISO installs
+`linux-enigmarsos-lts` (and can carry `linux-enigmarsos` from `main`).
+Never hard-code a vmlinuz path.
 
 ## What not to add
 
@@ -115,7 +122,7 @@ See [`iso/README.md`](iso/README.md). The ISO should install both
 - CachyOS "sauce", BMQ, or other scheduler stacks
 - `-O3`, LTO, or `-march=native` without numbers
 - Kubernetes, extra databases, or a custom build system
-- Auto-commits from CI that rewrite `PKGBUILD` onto `main`
+- Auto-commits from CI that rewrite `PKGBUILD` onto `lts`
 
-Keep the repository boring: packaging + one patch + one fragment +
-one workflow.
+Keep the repository boring: packaging + patches + one fragment +
+one workflow (scheduled LTS).

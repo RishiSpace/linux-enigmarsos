@@ -93,8 +93,8 @@ sudo -u builder --preserve-env=SOURCE_DATE_EPOCH,CCACHE_DIR,ENABLE_CCACHE \
 # Install the just-built kernel into the container so mkinitcpio can run.
 echo "==> Generating initramfs with mkinitcpio"
 shopt -s nullglob
-KERNEL_PKG=("$OUT"/linux-enigmarsos-[0-9]*.pkg.tar.zst)
-HEADERS_PKG=("$OUT"/linux-enigmarsos-headers-*.pkg.tar.zst)
+KERNEL_PKG=("$OUT"/linux-enigmarsos-lts-[0-9]*.pkg.tar.zst)
+HEADERS_PKG=("$OUT"/linux-enigmarsos-lts-headers-*.pkg.tar.zst)
 shopt -u nullglob
 [[ -f "${KERNEL_PKG[0]:-}" ]] || { echo "kernel package missing in $OUT" >&2; exit 1; }
 
@@ -102,11 +102,11 @@ pacman -U --noconfirm "${KERNEL_PKG[0]}" "${HEADERS_PKG[0]:-}"
 KREL="$(find /usr/lib/modules -mindepth 1 -maxdepth 1 -type d -name '*enigmarsos*' -printf '%f\n' | head -n1)"
 [[ -n "$KREL" ]] || { echo "installed kernel release not found" >&2; exit 1; }
 echo "Installed kernel release: $KREL"
-if ! mkinitcpio -k "$KREL" -g "$OUT/initramfs-linux-enigmarsos.img"; then
+if ! mkinitcpio -k "$KREL" -g "$OUT/initramfs-linux-enigmarsos-lts.img"; then
   echo "==> mkinitcpio with default hooks failed; retrying without autodetect"
-  mkinitcpio -k "$KREL" -g "$OUT/initramfs-linux-enigmarsos.img" -S autodetect
+  mkinitcpio -k "$KREL" -g "$OUT/initramfs-linux-enigmarsos-lts.img" -S autodetect
 fi
-[[ -s "$OUT/initramfs-linux-enigmarsos.img" ]] || { echo "mkinitcpio produced an empty image" >&2; exit 1; }
+[[ -s "$OUT/initramfs-linux-enigmarsos-lts.img" ]] || { echo "mkinitcpio produced an empty image" >&2; exit 1; }
 echo "==> mkinitcpio: OK"
 
 sudo -u builder bash -lc "'$BUILDROOT/pkg/scripts/qemu-smoke.sh' '$OUT'"
@@ -114,17 +114,17 @@ sudo -u builder bash -lc "'$BUILDROOT/pkg/scripts/qemu-smoke.sh' '$OUT'"
 echo "==> Checksums"
 (
   cd "$OUT"
-  sha256sum linux-enigmarsos-*.pkg.tar.zst initramfs-linux-enigmarsos.img > SHA256SUMS
+  sha256sum linux-enigmarsos-lts-*.pkg.tar.zst initramfs-linux-enigmarsos-lts.img > SHA256SUMS
   if command -v b2sum >/dev/null 2>&1; then
-    b2sum linux-enigmarsos-*.pkg.tar.zst initramfs-linux-enigmarsos.img > B2SUMS
+    b2sum linux-enigmarsos-lts-*.pkg.tar.zst initramfs-linux-enigmarsos-lts.img > B2SUMS
   fi
 )
 
 if command -v namcap >/dev/null 2>&1; then
   echo "==> namcap (informational; warnings are expected for kernel packages)"
-  namcap "${KERNEL_PKG[0]}" | tee "$OUT/namcap-linux-enigmarsos.txt" || true
+  namcap "${KERNEL_PKG[0]}" | tee "$OUT/namcap-linux-enigmarsos-lts.txt" || true
   if [[ -f "${HEADERS_PKG[0]:-}" ]]; then
-    namcap "${HEADERS_PKG[0]}" | tee "$OUT/namcap-linux-enigmarsos-headers.txt" || true
+    namcap "${HEADERS_PKG[0]}" | tee "$OUT/namcap-linux-enigmarsos-lts-headers.txt" || true
   fi
 fi
 
@@ -139,7 +139,7 @@ BORE_META="$REPO_ROOT/patches/bore.meta"
 source "$BORE_META"
 
 cat >"$OUT/BUILD-METADATA.txt" <<EOF
-package_name=linux-enigmarsos
+package_name=linux-enigmarsos-lts
 package_version=$(package_version)
 upstream_linux=$(upstream_kernel)
 arch_pkgver=$(pkgbuild_var pkgver)
@@ -164,16 +164,16 @@ ccache=${ENABLE_CCACHE:-1}
 EOF
 
 cat >"$OUT/RELEASE-NOTES.md" <<EOF
-# linux-enigmarsos $(package_version)
+# linux-enigmarsos-lts $(package_version)
 
-Custom EnigmarsOS kernel: current Arch Linux kernel + EnigmarsOS configuration + BORE scheduler.
+EnigmarsOS LTS kernel: Arch linux-lts + EnigmarsOS configuration + BORE scheduler (x86-64-v2, live ISO default).
 
 | Field | Value |
 | --- | --- |
-| Package | \`linux-enigmarsos $(package_version)\` |
+| Package | \`linux-enigmarsos-lts $(package_version)\` |
 | Kernel release | \`$KREL\` |
 | Upstream Linux | $(upstream_kernel) |
-| Tracked Arch \`linux\` | $(pkgbuild_var pkgver)-$(pkgbuild_var _arch_pkgrel) |
+| Tracked Arch \`linux-lts\` | $(pkgbuild_var pkgver)-$(pkgbuild_var _arch_pkgrel) |
 | EnigmarsOS pkgrel | $(pkgbuild_var pkgrel) |
 | BORE | $BORE_VERSION (\`$BORE_COMMIT\`, $BORE_CHANNEL) |
 | BORE designed for | Linux $BORE_DESIGNED_FOR_KERNEL |
@@ -193,23 +193,23 @@ Custom EnigmarsOS kernel: current Arch Linux kernel + EnigmarsOS configuration +
 ## Install (pacman repo — GitHub Releases mirror)
 
 \`\`\`ini
-[linux-enigmarsos]
+[linux-enigmarsos-lts]
 SigLevel = Optional TrustAll
-Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+Server = https://github.com/RishiSpace/linux-enigmarsos/releases/download/lts
 \`\`\`
 
 \`\`\`bash
-sudo pacman -Sy linux-enigmarsos linux-enigmarsos-headers
+sudo pacman -Sy linux-enigmarsos-lts linux-enigmarsos-lts-headers
 \`\`\`
 
 Or install the release assets directly:
 
 \`\`\`bash
-sudo pacman -U linux-enigmarsos-$(package_version)-x86_64.pkg.tar.zst \\
-              linux-enigmarsos-headers-$(package_version)-x86_64.pkg.tar.zst
+sudo pacman -U linux-enigmarsos-lts-$(package_version)-x86_64.pkg.tar.zst \\
+              linux-enigmarsos-lts-headers-$(package_version)-x86_64.pkg.tar.zst
 \`\`\`
 
-Keep the official Arch \`linux\` package installed as the fallback kernel.
+Keep the official Arch \`linux-lts\` package installed as the fallback kernel.
 EOF
 
 echo "==> ci-build: OK"

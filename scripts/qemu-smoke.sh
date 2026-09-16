@@ -9,7 +9,7 @@ usage() {
   cat <<'EOF'
 Usage: qemu-smoke.sh [package-dir]
 
-Extracts vmlinuz from the built linux-enigmarsos package, builds a
+Extracts vmlinuz from the built linux-enigmarsos-lts package, builds a
 busybox initramfs, and boots it under qemu-system-x86_64 (TCG).
 
 The guest must print ENIGMARSOS_QEMU_PASS and show:
@@ -38,18 +38,18 @@ if [[ -z "$PKGDIR" ]]; then
   mapfile -t ALL_PKGS < <(find_built_packages || true)
 else
   shopt -s nullglob
-  ALL_PKGS=("$PKGDIR"/linux-enigmarsos-[0-9]*.pkg.tar.zst)
+  ALL_PKGS=("$PKGDIR"/linux-enigmarsos-lts-*.pkg.tar.zst)
   shopt -u nullglob
 fi
 
 KERNEL_PKG=""
 for p in "${ALL_PKGS[@]:-}"; do
   base="$(basename "$p")"
-  if [[ "$base" == linux-enigmarsos-* && "$base" != linux-enigmarsos-headers-* ]]; then
+  if [[ "$base" == linux-enigmarsos-lts-* && "$base" != linux-enigmarsos-lts-headers-* ]]; then
     KERNEL_PKG="$p"
   fi
 done
-[[ -n "$KERNEL_PKG" ]] || die "linux-enigmarsos package not found"
+[[ -n "$KERNEL_PKG" ]] || die "linux-enigmarsos-lts package not found"
 
 WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/enigmarsos-qemu.XXXXXX")"
 cleanup() { rm -rf "$WORKDIR"; }
