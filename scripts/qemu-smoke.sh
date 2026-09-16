@@ -56,7 +56,8 @@ cleanup() { rm -rf "$WORKDIR"; }
 trap cleanup EXIT
 
 info "Extracting vmlinuz from $KERNEL_PKG"
-bsdtar -C "$WORKDIR" -xf "$KERNEL_PKG" --wildcards 'usr/lib/modules/*/vmlinuz'
+# bsdtar (libarchive) has no --wildcards flag; patterns match by default.
+bsdtar -C "$WORKDIR" -xf "$KERNEL_PKG" 'usr/lib/modules/*/vmlinuz'
 VMLINUZ="$(find "$WORKDIR/usr/lib/modules" -name vmlinuz -print -quit)"
 [[ -n "$VMLINUZ" ]] || die "vmlinuz missing from package"
 

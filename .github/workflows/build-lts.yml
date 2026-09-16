@@ -1,6 +1,8 @@
 # Build linux-enigmarsos-lts in an Arch Linux container.
 #
 # Weekly schedule: 04:00 UTC every Wednesday, plus manual dispatch.
+# Each run first tries to advance the packaging (Arch linux-lts +
+# BORE) and commits the result to `lts`, then compiles it.
 # Releases to the fixed `lts` tag (mirror-ready 7-file set).
 # This file is identical on main and lts: it always checks out `lts`,
 # because scheduled runs execute on the default branch.
@@ -46,8 +48,44 @@ env:
   ENABLE_CCACHE: '1'
 
 jobs:
+  update:
+    name: Update LTS packaging from Arch
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lts
+          fetch-depth: 0
+
+      - name: Run Arch + BORE update scripts
+        run: |
+          set -euo pipefail
+          ./scripts/update-arch-kernel.sh
+          ./scripts/update-bore.sh
+          ./scripts/status.sh || true
+
+      - name: Commit and push if packaging changed
+        id: commit
+        run: |
+          set -euo pipefail
+          git config user.name "EnigmarsOS Kernel CI"
+          git config user.email "ci@enigmarsos.org"
+          git add PKGBUILD patches/bore.patch patches/bore.meta \
+            config/config.x86_64 keys/pgp
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Packaging already current; nothing to commit."
+          else
+            git commit -m "auto: track Arch linux-lts $(awk -F= '/^pkgver=/{print $2; exit}' PKGBUILD)"
+            git push origin HEAD:lts
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
   decide:
     name: Decide whether to compile
+    needs: update
     runs-on: ubuntu-latest
     outputs:
       compile: ${{ steps.decide.outputs.compile }}
@@ -104,23 +142,32 @@ jobs:
           publish_in="${{ github.event.inputs.publish }}"
           pkg_version="${{ steps.meta.outputs.package_version }}"
           event="${{ github.event_name }}"
+          changed="${{ needs.update.outputs.changed }}"
 
           trigger="$event"
           if [ "$event" = "workflow_dispatch" ]; then trigger=manual; fi
           if [ "$event" = "schedule" ]; then trigger=scheduled; fi
           publish=false
           compile=true
+          asset="linux-enigmarsos-lts-${pkg_version}-x86_64.pkg.tar.zst"
 
-          if [ "$event" = "schedule" ]; then publish=true; fi
-          if [ "$publish_in" = "true" ]; then publish=true; fi
-          if [ "$force" = "" ]; then force=true; fi
-
-          if [ "$force" != "true" ]; then
-            asset="linux-enigmarsos-lts-${pkg_version}-x86_64.pkg.tar.zst"
-            if gh release view lts --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$asset"; then
-              echo "lts release already contains $asset and force_rebuild=false; skipping compile."
+          if [ "$event" = "schedule" ]; then
+            publish=true
+            if [ "$changed" != "true" ] && gh release view lts --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$asset"; then
+              echo "No packaging updates and $asset already released; skipping compile."
               compile=false
               publish=false
+            fi
+          else
+            if [ "$publish_in" = "true" ]; then publish=true; fi
+            if [ "$force" = "" ]; then force=true; fi
+
+            if [ "$force" != "true" ]; then
+              if gh release view lts --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$asset"; then
+                echo "lts release already contains $asset and force_rebuild=false; skipping compile."
+                compile=false
+                publish=false
+              fi
             fi
           fi
 

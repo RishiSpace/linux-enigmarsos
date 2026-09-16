@@ -3,25 +3,20 @@
 This project is meant to be run by one developer. The loop is small.
 
 ```
-Arch publishes a new linux-lts
+Wednesday 04:00 UTC (or manual dispatch):
+  update job runs update-arch-kernel.sh + update-bore.sh,
+  commits to `lts` if packaging changed
         ↓
-./scripts/status.sh                  # notice it
-        ↓
-./scripts/update-arch-kernel.sh      # pkgver, checksums, config, 000*.patch
-        ↓
-./scripts/update-bore.sh             # matching BORE patch, or FAIL
-        ↓
-review the git diff
-        ↓
-commit, then wait for Wednesday or run it by hand
-        (Actions → Build linux-enigmarsos-lts → Run workflow)
-        ↓
-CI compiles, tests, updates the `lts` GitHub Release
+CI compiles the new `lts` head, tests, updates the `lts` GitHub Release
         (packages + linux-enigmarsos-lts.db — pacman mirror)
         ↓
 ISO / installed systems: pacman -Sy linux-enigmarsos-lts
         Server = …/releases/download/lts
 ```
+
+The Wednesday job handles routine Arch/BORE advances by itself. The
+manual steps below are for urgent bumps, BORE-only updates, and for
+reviewing what the automation committed after the fact.
 
 ## Weekly (or whenever you open the laptop)
 
@@ -32,7 +27,10 @@ ISO / installed systems: pacman -Sy linux-enigmarsos-lts
 `IN SYNC` means do nothing. `BEHIND` means Arch moved.
 `BORE MISMATCH` means the pinned patch was written for another series.
 
-## Incorporating an Arch kernel update
+## Incorporating an Arch kernel update (manual)
+
+Normally the Wednesday job does steps 1–2 and commits by itself. Run
+them by hand only for an urgent mid-week bump:
 
 1. `./scripts/update-arch-kernel.sh`
    - Rewrites `pkgver`, `_arch_pkgrel`, checksums.
@@ -52,8 +50,9 @@ ISO / installed systems: pacman -Sy linux-enigmarsos-lts
 5. `git diff` — read the BORE patch header and the PKGBUILD version
    block. If the patch file grew a lot or touches new subsystems,
    read those hunks.
-6. Commit to `lts`. Trigger **Build linux-enigmarsos-lts** by hand,
-   or wait for the Wednesday schedule (04:00 UTC).
+6. Commit to `lts`. The next Wednesday run (or a manual
+   **Build linux-enigmarsos-lts** dispatch, which also runs the update
+   scripts first) picks it up.
 
 Do not rebase BORE by hand. Do not delete a hunk to make `patch`
 succeed. A failed apply is the correct answer.
