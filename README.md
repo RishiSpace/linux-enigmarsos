@@ -101,35 +101,25 @@ See [BUILDING.md](BUILDING.md).
 
 ## GitHub Actions
 
-Workflow: [`.github/workflows/build.yml`](.github/workflows/build.yml)
+Workflows:
+
+- [`.github/workflows/build.yml`](.github/workflows/build.yml) —
+  rolling kernel, **manual only**.
+- [`.github/workflows/build-lts.yml`](.github/workflows/build-lts.yml) —
+  LTS kernel, **every Wednesday 04:00 UTC** plus manual. It always
+  checks out the `lts` branch and updates the fixed `lts` release.
 
 The compile runs in the official `archlinux:base-devel` image, **pinned
 by digest**, on a GitHub-hosted `ubuntu-latest` runner. Ubuntu is only
 the host; packages are produced by Arch `makepkg`.
 
-### Fortnightly automatic builds
-
-The workflow is scheduled at **04:00 UTC on the 1st and 15th** of each
-month:
-
-```yaml
-schedule:
-  - cron: '0 4 1,15 * *'
-```
-
-Change that one line to move the window.
-
-A scheduled run that would rebuild an already-published
-`v<pkgver>-<pkgrel>` tag is skipped unless you set `force_rebuild`.
-Bump `pkgrel` (or change the version) when the packaging inputs change.
-
-### Manual builds
+### Manual rolling builds
 
 Actions → **Build linux-enigmarsos** → **Run workflow**.
 
 | Input | Default | Meaning |
 | --- | --- | --- |
-| `force_rebuild` | true | Rebuild even if that version was already released |
+| `force_rebuild` | true | Rebuild even if that version was already released (`false` skips when the tag exists) |
 | `publish` | true | Create a GitHub Release (`false` = artefacts only) |
 | `kernel_version` | empty | Must match `PKGBUILD` `pkgver` if set |
 | `bore_version` | empty | Must match `patches/bore.meta` if set |
@@ -138,9 +128,27 @@ Actions → **Build linux-enigmarsos** → **Run workflow**.
 overrides. Changing the kernel still happens in git, via the update
 scripts, so a release is always built from a committed tree.
 
-Pushes to `main` that touch packaging files also build and publish.
-Pull requests build and upload artefacts but do **not** create a
-release.
+Pushes and pull requests never trigger a compile. Bump `pkgrel` (or
+change the version) when the packaging inputs change, then run the
+workflow by hand.
+
+### Weekly LTS builds
+
+Actions → **Build linux-enigmarsos-lts** → **Run workflow**, or wait
+for the Wednesday schedule:
+
+```yaml
+schedule:
+  - cron: '0 4 * * 3'
+```
+
+The LTS job publishes to the fixed `lts` tag (created if missing,
+`--clobber` updated otherwise) with the 7-file mirror set: kernel,
+headers, `linux-enigmarsos-lts.db` / `.db.tar.gz` /
+`.files` / `.files.tar.gz`, and `SHA256SUMS`. A run with
+`force_rebuild=false` is skipped when the `lts` release already
+contains that package version. Change the cron line to move the
+window.
 
 ### Releases
 
@@ -163,10 +171,12 @@ Release assets:
 - `initramfs-linux-enigmarsos.img` (CI-generated, for inspection)
 
 The notes record the EnigmarsOS version, upstream Linux, Arch package,
-BORE version/commit, git SHA, and whether the run was scheduled or
-manual.
+BORE version/commit, git SHA, and that the run was manual.
 
 Workflow artefacts are also kept for 14 days for CI inspection.
+
+The LTS workflow (`lts` tag) keeps its own notes per update; its
+mirror is `.../releases/download/lts`.
 
 ## Installing the packages
 
@@ -219,7 +229,7 @@ pacman -S linux linux-headers
 ./scripts/update-bore.sh
 # review the diff, especially patches/bore.patch
 git commit
-# Actions → Run workflow, or wait for the fortnightly schedule
+# Actions → Build linux-enigmarsos → Run workflow
 ```
 
 If `update-bore.sh` cannot find a patch for the new series, **stop**.

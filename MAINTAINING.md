@@ -13,7 +13,7 @@ Arch publishes a new linux
         ↓
 review the git diff
         ↓
-commit and either wait for the 1st/15th or Run workflow
+commit, then Actions → Build linux-enigmarsos → Run workflow
         ↓
 CI compiles, tests, publishes a GitHub Release
         (packages + linux-enigmarsos.db — pacman mirror)
@@ -51,8 +51,8 @@ ISO / installed systems: pacman -Sy linux-enigmarsos
 5. `git diff` — read the BORE patch header and the PKGBUILD version
    block. If the patch file grew a lot or touches new subsystems,
    read those hunks.
-6. Commit. Trigger **Build linux-enigmarsos** or wait for the
-   fortnightly schedule.
+6. Commit. Trigger **Build linux-enigmarsos** by hand (no schedule,
+   no push/PR builds on `main`).
 
 Do not rebase BORE by hand. Do not delete a hunk to make `patch`
 succeed. A failed apply is the correct answer.
@@ -67,11 +67,12 @@ git diff patches/bore.patch
 
 Then compile in CI.
 
-## If the fortnightly build fails
+## If the manual build fails
 
 1. Open the failed run. The first interesting line is usually
    `patch … did not apply cleanly` or a missing `CONFIG_SCHED_BORE`.
-2. If Arch moved and we did not, run the update scripts and push.
+2. If Arch moved and we did not, run the update scripts, commit,
+   and run the workflow again.
 3. If BORE no longer applies, leave the last good release up, keep
    `linux` as the ISO default if you have to, and wait for an upstream
    BORE patch. Do not ship `linux-enigmarsos` without BORE.
@@ -80,19 +81,23 @@ Then compile in CI.
    image is not booting on `ttyS0` (config regression), not a flaky
    test.
 
-## Changing the schedule
+## Changing the LTS schedule
 
-Edit `.github/workflows/build.yml`:
+The rolling workflow has no schedule. The LTS workflow
+(`.github/workflows/build-lts.yml`, Wednesdays 04:00 UTC) does:
 
 ```yaml
 schedule:
-  - cron: '0 4 1,15 * *'
+  - cron: '0 4 * * 3'
 ```
 
 Examples:
 
 - weekly Mondays 04:00 UTC: `0 4 * * 1`
-- only the 1st of the month: `0 4 1 * *`
+- twice a month: `0 4 1,15 * *`
+
+The file lives on `main` (schedules only fire on the default branch)
+and checks out `lts`, so edit it on `main` and mirror it to `lts`.
 
 ## Changing the container pin
 
@@ -118,4 +123,4 @@ See [`iso/README.md`](iso/README.md). The ISO should install both
 - Auto-commits from CI that rewrite `PKGBUILD` onto `main`
 
 Keep the repository boring: packaging + one patch + one fragment +
-one workflow.
+two workflows (manual rolling, scheduled LTS).
