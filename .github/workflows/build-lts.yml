@@ -290,7 +290,12 @@ jobs:
             -v "$PWD":/src:ro \
             -v "$PWD/out":/out \
             "${ARCH_IMAGE}" \
-            bash /src/scripts/publish-repo.sh /out /out
+            bash -c '
+              set -euo pipefail
+              pacman -Syu --noconfirm --needed pacman pacman-contrib
+              command -v repo-add
+              bash /src/scripts/publish-repo.sh /out /out
+            '
           test -f out/linux-enigmarsos-lts.db
           test -f out/linux-enigmarsos-lts.db.tar.gz
           test ! -L out/linux-enigmarsos-lts.db
