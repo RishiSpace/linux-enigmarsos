@@ -195,7 +195,7 @@ Custom EnigmarsOS kernel: current Arch Linux kernel + EnigmarsOS configuration +
 \`\`\`ini
 [linux-enigmarsos]
 SigLevel = Optional TrustAll
-Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+Server = https://github.com/enigmars-project/linux-enigmarsos/releases/latest/download
 \`\`\`
 
 \`\`\`bash

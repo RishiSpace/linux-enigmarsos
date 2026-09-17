@@ -186,7 +186,7 @@ GitHub Releases are a pacman repo ($0 mirror). See [`repo/README.md`](repo/READM
 # /etc/pacman.conf — or Include repo/enigmarsos.example.conf
 # [linux-enigmarsos]
 # SigLevel = Optional TrustAll
-# Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+# Server = https://github.com/enigmars-project/linux-enigmarsos/releases/latest/download
 
 sudo pacman -Sy linux-enigmarsos linux-enigmarsos-headers
 ```

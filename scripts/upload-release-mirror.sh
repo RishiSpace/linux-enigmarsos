@@ -12,7 +12,7 @@ TAG="${1:-}"
 REPO_DIR="${2:-$REPO_ROOT/repo/x86_64}"
 
 if [[ -z "$TAG" ]]; then
-  TAG="$(gh release list --repo RishiSpace/linux-enigmarsos --limit 20 \
+  TAG="$(gh release list --repo enigmars-project/linux-enigmarsos --limit 20 \
     --json tagName,isLatest --jq '.[] | select(.isLatest==true) | .tagName')"
 fi
 [[ -n "$TAG" ]] || die "could not determine Latest release tag (pass it as argv1)"
@@ -22,7 +22,7 @@ fi
 
 info "Uploading mirror assets to release $TAG from $REPO_DIR"
 # --clobber replaces db files when republishing the same tag
-gh release upload "$TAG" --clobber --repo RishiSpace/linux-enigmarsos \
+gh release upload "$TAG" --clobber --repo enigmars-project/linux-enigmarsos \
   "$REPO_DIR/linux-enigmarsos.db" \
   "$REPO_DIR/linux-enigmarsos.db.tar.gz" \
   "$REPO_DIR/linux-enigmarsos.files" \
@@ -30,4 +30,4 @@ gh release upload "$TAG" --clobber --repo RishiSpace/linux-enigmarsos \
   "$REPO_DIR/SHA256SUMS"
 
 info "Mirror URL:"
-echo "  https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download/linux-enigmarsos.db"
+echo "  https://github.com/enigmars-project/linux-enigmarsos/releases/latest/download/linux-enigmarsos.db"

@@ -294,4 +294,4 @@ jobs:
               out/SHA256SUMS
             echo "Created lts release"
           fi
-          echo "Mirror: https://github.com/RishiSpace/linux-enigmarsos/releases/download/lts"
+          echo "Mirror: https://github.com/enigmars-project/linux-enigmarsos/releases/download/lts"

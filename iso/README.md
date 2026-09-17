@@ -32,7 +32,7 @@ Latest **before** `mkarchiso` / `pacstrap`:
 ```
 [linux-enigmarsos]
 SigLevel = Optional TrustAll
-Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+Server = https://github.com/enigmars-project/linux-enigmarsos/releases/latest/download
 ```
 
 For an offline / pinned ISO build, snapshot Latest into a `file://` repo:
@@ -40,7 +40,7 @@ For an offline / pinned ISO build, snapshot Latest into a `file://` repo:
 ```bash
 mkdir -p /tmp/eos-kernel-repo
 cd /tmp/eos-kernel-repo
-base=https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+base=https://github.com/enigmars-project/linux-enigmarsos/releases/latest/download
 # packages + db from the Latest release, or:
 #   ./scripts/publish-repo.sh /tmp/eos-kernel-repo /path/to/packages
 curl -fL -O "$base/linux-enigmarsos.db"

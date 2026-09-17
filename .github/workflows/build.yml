@@ -289,4 +289,4 @@ jobs:
             out/BUILD-METADATA.txt \
             out/initramfs-linux-enigmarsos.img
           echo "Published $tag"
-          echo "Mirror: https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download"
+          echo "Mirror: https://github.com/enigmars-project/linux-enigmarsos/releases/latest/download"
