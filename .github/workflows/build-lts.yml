@@ -48,7 +48,7 @@ env:
 jobs:
   decide:
     name: Decide whether to compile
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     outputs:
       compile: ${{ steps.decide.outputs.compile }}
       publish: ${{ steps.decide.outputs.publish }}
@@ -133,7 +133,7 @@ jobs:
     name: Compile LTS kernel
     needs: decide
     if: needs.decide.outputs.compile == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-32vcpu-ubuntu-2404
     timeout-minutes: 360
     steps:
       - name: Free disk space
