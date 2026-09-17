@@ -3,7 +3,6 @@
 # Weekly schedule: 04:00 UTC every Wednesday, plus manual dispatch.
 # Each run first tries to advance the packaging (Arch linux-lts +
 # BORE) and commits the result to `lts`, then compiles it.
-# Releases to the fixed `lts` tag (mirror-ready 7-file set).
 # This file is identical on main and lts: it always checks out `lts`,
 # because scheduled runs execute on the default branch.
 name: Build linux-enigmarsos-lts
@@ -141,6 +140,7 @@ jobs:
           force="${{ github.event.inputs.force_rebuild }}"
           publish_in="${{ github.event.inputs.publish }}"
           pkg_version="${{ steps.meta.outputs.package_version }}"
+          tag="linux-enigamrsos-lts-${{ steps.meta.outputs.pkgver }}"
           event="${{ github.event_name }}"
           changed="${{ needs.update.outputs.changed }}"
 
@@ -153,7 +153,7 @@ jobs:
 
           if [ "$event" = "schedule" ]; then
             publish=true
-            if [ "$changed" != "true" ] && gh release view lts --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$asset"; then
+            if [ "$changed" != "true" ] && gh release view "$tag" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$asset"; then
               echo "No packaging updates and $asset already released; skipping compile."
               compile=false
               publish=false
@@ -163,7 +163,7 @@ jobs:
             if [ "$force" = "" ]; then force=true; fi
 
             if [ "$force" != "true" ]; then
-              if gh release view lts --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$asset"; then
+              if gh release view "$tag" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$asset"; then
                 echo "lts release already contains $asset and force_rebuild=false; skipping compile."
                 compile=false
                 publish=false
@@ -321,22 +321,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          title="linux-enigmarsos-lts ${{ needs.decide.outputs.package_version }} (BORE ${{ needs.decide.outputs.bore_version }})"
-          if gh release view lts >/dev/null 2>&1; then
-            gh release upload lts --clobber \
+          tag="linux-enigamrsos-lts-${{ needs.decide.outputs.pkgver }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" --clobber \
               out/linux-enigmarsos-lts-*.pkg.tar.zst \
               out/linux-enigmarsos-lts.db \
               out/linux-enigmarsos-lts.db.tar.gz \
               out/linux-enigmarsos-lts.files \
               out/linux-enigmarsos-lts.files.tar.gz \
               out/SHA256SUMS
-            gh release edit lts --title "$title" --notes-file out/RELEASE-NOTES.md
+            gh release edit "$tag" --latest=false --title "$tag" --notes-file out/RELEASE-NOTES.md
             echo "Updated lts release"
           else
-            gh release create lts \
-              --title "$title" \
+            gh release create "$tag" \
+              --latest=false \
+              --title "$tag" \
               --notes-file out/RELEASE-NOTES.md \
-              --target "${{ github.sha }}" \
+              --target "$(git rev-parse HEAD)" \
               out/linux-enigmarsos-lts-*.pkg.tar.zst \
               out/linux-enigmarsos-lts.db \
               out/linux-enigmarsos-lts.db.tar.gz \
@@ -345,4 +346,4 @@ jobs:
               out/SHA256SUMS
             echo "Created lts release"
           fi
-          echo "Mirror: https://github.com/RishiSpace/linux-enigmarsos/releases/download/lts"
+          echo "Mirror: https://github.com/RishiSpace/linux-enigmarsos/releases/download/$tag"
