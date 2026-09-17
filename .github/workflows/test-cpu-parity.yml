@@ -34,6 +34,32 @@ jobs:
             | tr ' ' '\n' | grep -v '^$' | sort -u > cpu-parity/host-flags.txt
           echo "=== host flag count: $(wc -l < cpu-parity/host-flags.txt) ==="
 
+      - name: x86-64-v3 execution canary (host)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cat > /tmp/v3canary.c <<'EOF'
+          #include <immintrin.h>
+          #include <stdio.h>
+          int main(void) {
+            __m256i a = _mm256_set1_epi32(1), b = _mm256_set1_epi32(2);
+            __m256i c = _mm256_add_epi32(a, b); /* real AVX2 (v3) execution */
+            unsigned x[8];
+            _mm256_storeu_si256((__m256i *)x, c);
+            if (x[0] != 3) { puts("V3_CANARY: WRONG RESULT"); return 1; }
+            puts("V3_CANARY: PASS (v3 compiles and executes)");
+            return 0;
+          }
+          EOF
+          {
+            grep -qo osxsave /proc/cpuinfo \
+              && echo "V3_CANARY: osxsave present" \
+              || echo "V3_CANARY: osxsave MISSING (Hyper-V; expect FAIL below)"
+            gcc -march=x86-64-v3 -o /tmp/v3canary /tmp/v3canary.c \
+              && echo "V3_CANARY: v3 compile OK"
+            /tmp/v3canary || echo "V3_CANARY: FAIL (v3 does not execute here)"
+          } | tee cpu-parity/v3canary-host.txt
+
       - name: Pull pinned Arch image
         run: |
           set -euo pipefail
@@ -51,6 +77,15 @@ jobs:
             bash -c "awk -F: '/^flags/{print \$2; exit}' /proc/cpuinfo" \
             | tr ' ' '\n' | grep -v '^$' | sort -u > cpu-parity/container-flags.txt
           echo "=== container flag count: $(wc -l < cpu-parity/container-flags.txt) ==="
+
+      - name: x86-64-v3 execution canary (arch container)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          docker run --rm -v /tmp/v3canary.c:/v3canary.c:ro \
+            "${ARCH_IMAGE}" \
+            bash -c 'gcc -march=x86-64-v3 -o /tmp/v3canary /v3canary.c && /tmp/v3canary || echo "V3_CANARY(container): FAIL"' \
+            | tee cpu-parity/v3canary-container.txt
 
       - name: Compare host vs container
         run: |
