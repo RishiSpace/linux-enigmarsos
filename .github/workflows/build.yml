@@ -44,7 +44,7 @@ env:
 jobs:
   decide:
     name: Decide whether to compile
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     outputs:
       compile: ${{ steps.decide.outputs.compile }}
       publish: ${{ steps.decide.outputs.publish }}
@@ -123,7 +123,7 @@ jobs:
     name: Compile kernel
     needs: decide
     if: needs.decide.outputs.compile == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-32vcpu-ubuntu-2404
     timeout-minutes: 360
     outputs:
       release_tag: ${{ steps.tag.outputs.release_tag }}
