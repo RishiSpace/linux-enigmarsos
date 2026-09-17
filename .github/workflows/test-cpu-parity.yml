@@ -1,0 +1,88 @@
+# CPU parity check: proves the Arch build container sees the host CPU entirely.
+#
+# Manual only: Actions → Test CPU parity → Run workflow.
+# Compares nproc/lscpu/CPU flags on the ubuntu runner vs inside the
+# archlinux:base-devel container used by build.yml. Fails if the container
+# is missing any host CPU flag.
+name: Test CPU parity
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Same pinned image as .github/workflows/build.yml.
+  ARCH_IMAGE: archlinux:base-devel@sha256:ee205c220399524a683cf495d411691b921baed8ab47cdc6d732efa782fae484
+
+jobs:
+  cpu-parity:
+    name: Compare host vs container CPU
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Host CPU info (ubuntu runner)
+        run: |
+          set -euo pipefail
+          mkdir -p cpu-parity
+          echo "=== nproc (host) ==="
+          nproc | tee cpu-parity/host-nproc.txt
+          echo "=== lscpu (host) ==="
+          lscpu | tee cpu-parity/host-lscpu.txt
+          awk -F: '/^flags/{print $2; exit}' /proc/cpuinfo \
+            | tr ' ' '\n' | grep -v '^$' | sort -u > cpu-parity/host-flags.txt
+          echo "=== host flag count: $(wc -l < cpu-parity/host-flags.txt) ==="
+
+      - name: Pull pinned Arch image
+        run: |
+          set -euo pipefail
+          docker pull "${ARCH_IMAGE}"
+          docker image inspect "${ARCH_IMAGE}" --format '{{index .RepoDigests 0}}'
+
+      - name: Container CPU info (archlinux:base-devel)
+        run: |
+          set -euo pipefail
+          echo "=== nproc (container) ==="
+          docker run --rm "${ARCH_IMAGE}" nproc | tee cpu-parity/container-nproc.txt
+          echo "=== lscpu (container) ==="
+          docker run --rm "${ARCH_IMAGE}" lscpu | tee cpu-parity/container-lscpu.txt
+          docker run --rm "${ARCH_IMAGE}" \
+            bash -c "awk -F: '/^flags/{print \$2; exit}' /proc/cpuinfo" \
+            | tr ' ' '\n' | grep -v '^$' | sort -u > cpu-parity/container-flags.txt
+          echo "=== container flag count: $(wc -l < cpu-parity/container-flags.txt) ==="
+
+      - name: Compare host vs container
+        run: |
+          set -euo pipefail
+          echo "=== nproc: host=$(cat cpu-parity/host-nproc.txt) container=$(cat cpu-parity/container-nproc.txt) ==="
+          echo "=== flags present on host but missing in container: ==="
+          comm -23 cpu-parity/host-flags.txt cpu-parity/container-flags.txt > cpu-parity/missing-in-container.txt || true
+          if [[ -s cpu-parity/missing-in-container.txt ]]; then
+            cat cpu-parity/missing-in-container.txt
+            echo "==> ERROR: container is missing host CPU flags" >&2
+            exit 1
+          fi
+          echo "No missing flags."
+          echo "=== flags present in container but not on host: ==="
+          comm -13 cpu-parity/host-flags.txt cpu-parity/container-flags.txt > cpu-parity/extra-in-container.txt || true
+          cat cpu-parity/extra-in-container.txt || true
+          echo "=== x86-64-v3 feature spot check (container flags) ==="
+          for need in avx avx2 bmi1 bmi2 f16c fma movbe; do
+            grep -qw "$need" cpu-parity/container-flags.txt && echo "  $need: yes" || echo "  $need: NO"
+          done
+          if grep -qw lzcnt cpu-parity/container-flags.txt; then
+            echo "  lzcnt: yes"
+          elif grep -qw abm cpu-parity/container-flags.txt; then
+            echo "  lzcnt: yes (as abm)"
+          else
+            echo "  lzcnt: NO"
+          fi
+
+      - name: Upload CPU parity report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-parity-${{ github.run_id }}
+          path: cpu-parity/
+          if-no-files-found: error
+          retention-days: 14
