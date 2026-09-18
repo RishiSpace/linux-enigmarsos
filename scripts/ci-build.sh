@@ -213,5 +213,8 @@ Keep the official Arch \`linux-lts\` package installed as the fallback kernel.
 EOF
 
 echo "==> ci-build: OK"
+# Everything root wrote above (initramfs is mode 600, checksums, metadata)
+# must be readable by the host runner user or upload-artifact fails EACCES.
+chmod -R a+rX "$OUT"
 ls -lh "$OUT"
 cat "$OUT/BUILD-METADATA.txt"
