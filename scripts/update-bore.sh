@@ -52,15 +52,18 @@ trap cleanup EXIT
 api="https://api.github.com/repos/firelzrd/bore-scheduler/contents"
 curl -fsSL "$api/patches/testing" > "$WORKDIR/testing.json"
 curl -fsSL "$api/patches/stable" > "$WORKDIR/stable.json"
-commit_json="$(curl -fsSL https://api.github.com/repos/firelzrd/bore-scheduler/commits/main)"
+# NOTE: fetched to a file, NOT a shell variable. The single-commit endpoint
+# embeds full file diffs (~250KB), which exceeds MAX_ARG_STRLEN (128KiB)
+# and fails with "Argument list too long" if passed as an argv string.
+curl -fsSL https://api.github.com/repos/firelzrd/bore-scheduler/commits/main > "$WORKDIR/commit.json"
 
 python3 - "$WORKDIR" "$kernel" "$series" "${REQUESTED}" "$CHECK_ONLY" \
-  "$BORE_PATCH" "$BORE_META" "$commit_json" <<'PY'
+  "$BORE_PATCH" "$BORE_META" <<'PY'
 import json, os, re, sys, urllib.request, hashlib, datetime
 
-workdir, kernel, series, requested, check_only, dest_patch, dest_meta, commit_json = sys.argv[1:9]
+workdir, kernel, series, requested, check_only, dest_patch, dest_meta = sys.argv[1:8]
 check_only = check_only == "1"
-commit = json.loads(commit_json)
+commit = json.load(open(os.path.join(workdir, "commit.json"), encoding="utf-8"))
 commit_sha = commit["sha"]
 commit_date = commit["commit"]["committer"]["date"][:10]
 
@@ -100,7 +103,8 @@ for d in stable_dirs:
 def parse_name(name):
     # 0001-linux7.1.5-bore-6.8.0.patch
     # 0001-linux7.1-rc1-bore-6.6.3.patch
-    m = re.search(r'linux(\d+(?:\.\d+)*(?:-rc\d+)?)-bore-([0-9.]+)\.patch$', name)
+    # 0001-linux6.18.48-bore-7.0.0-rc1.patch (rc-suffixed BORE version)
+    m = re.search(r'linux(\d+(?:\.\d+)*(?:-rc\d+)?)-bore-([0-9.]+(?:-rc\d+)?)\.patch$', name)
     if not m:
         return None, None
     return m.group(1), m.group(2)
