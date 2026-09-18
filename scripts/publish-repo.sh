@@ -75,8 +75,9 @@ done
   sha256sum linux-enigmarsos-*.pkg.tar.zst \
     linux-enigmarsos.db linux-enigmarsos.db.tar.gz \
     linux-enigmarsos.files linux-enigmarsos.files.tar.gz \
-    > SHA256SUMS 2>/dev/null || sha256sum linux-enigmarsos-*.pkg.tar.zst \
-    linux-enigmarsos.db* > SHA256SUMS
+    > SHA256SUMS.new 2>/dev/null || sha256sum linux-enigmarsos-*.pkg.tar.zst \
+    linux-enigmarsos.db* > SHA256SUMS.new
+  mv -f SHA256SUMS.new SHA256SUMS
 )
 
 info "pacman repository updated (GitHub-mirror regular files)"

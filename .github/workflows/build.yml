@@ -1,10 +1,13 @@
 # Build linux-enigmarsos in an Arch Linux container.
 #
-# Manual only: Actions → Build linux-enigmarsos → Run workflow.
-# No schedule, no push/PR triggers.
+# Weekly schedule: 11:30 IST every Wednesday, plus manual dispatch.
+# No push/PR triggers.
 name: Build linux-enigmarsos
 
 on:
+  schedule:
+    # 11:30 IST (UTC+5:30) = 06:00 UTC.
+    - cron: '0 6 * * 3'
   workflow_dispatch:
     inputs:
       force_rebuild:
@@ -52,6 +55,7 @@ jobs:
       pkgver: ${{ steps.meta.outputs.pkgver }}
       pkgrel: ${{ steps.meta.outputs.pkgrel }}
       package_version: ${{ steps.meta.outputs.package_version }}
+      upstream_kernel: ${{ steps.meta.outputs.upstream_kernel }}
       bore_version: ${{ steps.meta.outputs.bore_version }}
       bore_commit: ${{ steps.meta.outputs.bore_commit }}
     steps:
@@ -68,6 +72,7 @@ jobs:
           echo "pkgver=$pkgver" >> "$GITHUB_OUTPUT"
           echo "pkgrel=$pkgrel" >> "$GITHUB_OUTPUT"
           echo "package_version=${pkgver}-${pkgrel}" >> "$GITHUB_OUTPUT"
+          echo "upstream_kernel=${pkgver%.*}" >> "$GITHUB_OUTPUT"
           echo "bore_version=$bore_version" >> "$GITHUB_OUTPUT"
           echo "bore_commit=$bore_commit" >> "$GITHUB_OUTPUT"
           echo "pkgver=$pkgver pkgrel=$pkgrel bore=$bore_version"
@@ -96,9 +101,12 @@ jobs:
           set -euo pipefail
           force="${{ github.event.inputs.force_rebuild }}"
           publish_in="${{ github.event.inputs.publish }}"
-          tag="v${{ steps.meta.outputs.package_version }}"
+          event="${{ github.event_name }}"
+          tag="linux-enigmarsos-${{ steps.meta.outputs.upstream_kernel }}"
 
-          trigger=manual
+          trigger="$event"
+          if [ "$event" = "workflow_dispatch" ]; then trigger=manual; fi
+          if [ "$event" = "schedule" ]; then trigger=scheduled; fi
           publish=false
           compile=true
 
@@ -238,7 +246,7 @@ jobs:
         id: tag
         run: |
           set -euo pipefail
-          base="v${{ needs.decide.outputs.package_version }}"
+          base="linux-enigmarsos-${{ needs.decide.outputs.upstream_kernel }}"
           tag="$base"
           if git ls-remote --tags origin "refs/tags/${tag}" | grep -q .; then
             tag="${base}+gha.${{ github.run_id }}"
