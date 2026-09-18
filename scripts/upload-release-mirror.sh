@@ -19,9 +19,9 @@ fi
 [[ -f "$REPO_DIR/linux-enigmarsos-lts.db" ]] || die "run publish-repo.sh first ($REPO_DIR/linux-enigmarsos-lts.db missing)"
 [[ ! -L "$REPO_DIR/linux-enigmarsos-lts.db" ]] || die "linux-enigmarsos-lts.db must be a regular file, not a symlink"
 
-if ! gh release view "$TAG" --repo RishiSpace/linux-enigmarsos >/dev/null 2>&1; then
+if ! gh release view "$TAG" --repo enigmars-project/linux-enigmarsos >/dev/null 2>&1; then
   info "Creating release $TAG"
-  gh release create "$TAG" --repo RishiSpace/linux-enigmarsos \
+  gh release create "$TAG" --repo enigmars-project/linux-enigmarsos \
     --title "linux-enigmarsos-lts" \
     --notes "LTS ISO kernel (x86-64-v2). Rolling v3 stays on Latest."
 fi
@@ -31,7 +31,7 @@ pkgs=("$REPO_DIR"/linux-enigmarsos-lts-*.pkg.tar.zst)
 shopt -u nullglob
 
 info "Uploading mirror assets to release $TAG from $REPO_DIR"
-gh release upload "$TAG" --clobber --repo RishiSpace/linux-enigmarsos \
+gh release upload "$TAG" --clobber --repo enigmars-project/linux-enigmarsos \
   "$REPO_DIR/linux-enigmarsos-lts.db" \
   "$REPO_DIR/linux-enigmarsos-lts.db.tar.gz" \
   "$REPO_DIR/linux-enigmarsos-lts.files" \
@@ -40,4 +40,4 @@ gh release upload "$TAG" --clobber --repo RishiSpace/linux-enigmarsos \
   "${pkgs[@]}"
 
 info "Mirror URL:"
-echo "  https://github.com/RishiSpace/linux-enigmarsos/releases/download/lts/linux-enigmarsos-lts.db"
+echo "  https://github.com/enigmars-project/linux-enigmarsos/releases/download/lts/linux-enigmarsos-lts.db"

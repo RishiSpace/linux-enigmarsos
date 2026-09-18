@@ -10,7 +10,7 @@ Pacman does not need a directory listing. It only GETs:
 GitHub serves those via:
 
 ```text
-https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download/<filename>
+https://github.com/enigmars-project/linux-enigmarsos/releases/latest/download/<filename>
 ```
 
 ## Client snippet
@@ -20,7 +20,7 @@ See [`enigmarsos.example.conf`](enigmarsos.example.conf):
 ```ini
 [linux-enigmarsos]
 SigLevel = Optional TrustAll
-Server = https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+Server = https://github.com/enigmars-project/linux-enigmarsos/releases/latest/download
 ```
 
 ```bash
@@ -54,7 +54,7 @@ ISO builds can download Latest into a folder and use `file://`:
 ```bash
 mkdir -p /tmp/eos-kernel-repo
 cd /tmp/eos-kernel-repo
-base=https://github.com/RishiSpace/linux-enigmarsos/releases/latest/download
+base=https://github.com/enigmars-project/linux-enigmarsos/releases/latest/download
 curl -fL -O "$base/linux-enigmarsos.db"
 # or download both .pkg.tar.zst and run publish-repo.sh
 ```

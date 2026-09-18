@@ -5,7 +5,7 @@
 # linux-enigmarsos-lts.db and linux-enigmarsos-lts.files as regular files (copies
 # of the .tar.gz). Pacman can then use:
 #
-#   Server = https://github.com/RishiSpace/linux-enigmarsos/releases/download/lts
+#   Server = https://github.com/enigmars-project/linux-enigmarsos/releases/download/lts
 #
 set -euo pipefail
 
@@ -86,7 +86,7 @@ echo "Add the following to /etc/pacman.conf (or /etc/pacman.d/linux-enigmarsos-l
 echo
 echo "[linux-enigmarsos-lts]"
 echo "SigLevel = Optional TrustAll"
-echo "Server = https://github.com/RishiSpace/linux-enigmarsos/releases/download/lts"
+echo "Server = https://github.com/enigmars-project/linux-enigmarsos/releases/download/lts"
 echo "# Server = file://$DEST"
 echo
 echo "Then: pacman -Sy linux-enigmarsos-lts linux-enigmarsos-lts-headers"

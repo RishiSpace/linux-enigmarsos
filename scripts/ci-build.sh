@@ -195,7 +195,7 @@ EnigmarsOS LTS kernel: Arch linux-lts + EnigmarsOS configuration + BORE schedule
 \`\`\`ini
 [linux-enigmarsos-lts]
 SigLevel = Optional TrustAll
-Server = https://github.com/RishiSpace/linux-enigmarsos/releases/download/linux-enigamrsos-lts-$(pkgbuild_var pkgver)
+Server = https://github.com/enigmars-project/linux-enigmarsos/releases/download/lts
 \`\`\`
 
 \`\`\`bash
